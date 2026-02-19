@@ -12,6 +12,11 @@ httpx = "^0.25.0"
 fastapi = "^0.115.6"
 sqlalchemy = "^2.0.37"
 aiosqlite = "^0.20.0"
+loguru = "^0.7.3"
+asyncpg = "^0.31.0"
+pydantic = {extras = ["email"], version = "^2.12.5"}
+pydantic-settings = "^2.13.1"
+greenlet = "^3.3.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -27,6 +32,9 @@ pytest-httpx = "^0.26.0"
 pytest-mock = "^3.11.1"
 pytest-mock-server = "^0.3.0"
 pytest-xdist = "^3.3.1"
+black = "24.2.0"
+isort = ">=5.0.0,<7"
+mypy = "^1.19.1"
 
 
 [build-system]
@@ -35,3 +43,15 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.black]
 line-length = "120"
+
+[tool.isort]
+profile = "black"
+line_length = "120"
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+strict = false
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = false

@@ -1,0 +1,16 @@
+from fastapi import HTTPException
+
+
+class TransactionNotExistsException(HTTPException): ...
+
+
+class TransactionDoesNotBelongToUserException(HTTPException): ...
+
+
+class CreateTransactionForBlockedUserException(HTTPException): ...
+
+
+class UpdateTransactionForBlockedUserException(HTTPException): ...
+
+
+class TransactionAlreadyRollbackedException(HTTPException): ...
