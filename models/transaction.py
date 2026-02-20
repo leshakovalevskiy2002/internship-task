@@ -12,7 +12,7 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    currency: Mapped[str| None] = mapped_column()
+    currency: Mapped[str | None] = mapped_column()
     amount: Mapped[Decimal] = mapped_column(Numeric(precision=15, scale=2), nullable=True)
     status: Mapped[str | None] = mapped_column()
     created: Mapped[datetime | None] = mapped_column()
