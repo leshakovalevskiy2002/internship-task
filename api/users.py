@@ -1,4 +1,4 @@
-from datetime import datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import select, update
@@ -49,31 +49,31 @@ async def get_users(
     return sorted(results, key=lambda x: x.created)
 
 
-@router.post("", status_code=status.HTTP_200_OK)
-async def post_user(user: RequestUserModel, session: AsyncSession = Depends(get_async_session)):
-    email = user.email.strip()
-    email = "".join([x for x in email if x != " "])
-    if len(email) == 0:
-        raise BadRequestDataException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email can't consist entirely of spaces"
-        )
-    db_user = await session.execute(select(User).where(User.email == user.email))
-    if db_user.scalar():
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=UserModel)
+async def create_user_and_his_balances(
+    new_user_data: RequestUserModel, session: Annotated[AsyncSession, Depends(get_async_session)]
+):
+    email = new_user_data.email
+
+    result = await session.execute(select(User).where(User.email == email))
+    db_user = result.scalar()
+
+    if db_user is not None:
         raise UserAlreadyExistsException(
-            status_code=status.HTTP_409_CONFLICT, detail="User with email=`{0}` already exists".format(user.email)
+            status_code=status.HTTP_409_CONFLICT, detail=f"User with email=`{email}` already exists"
         )
-    db_user = User(email=user.email, status="ACTIVE", created=datetime.utcnow())
-    session.add(db_user)
+
+    new_user = User(email=email)
+    session.add(new_user)
     await session.commit()
-    currencies = list({str(x) for x in CurrencyEnum})
-    for currency in currencies:
-        user_balance = UserBalance(user_id=db_user.id, currency=currency, amount=0, created=datetime.utcnow())
+
+    for currency in CurrencyEnum:
+        user_balance = UserBalance(user_id=new_user.id, currency=currency)
         session.add(user_balance)
-        await session.commit()
-    result = await session.execute(select(User).where(User.email == user.email))
-    result = result.scalar()
-    result = UserModel(id=result.id, email=result.email, status=UserStatusEnum(result.status), created=result.created)
-    return result
+
+    await session.commit()
+    await session.refresh(new_user)
+    return new_user
 
 
 @router.patch("/users/{user_id}", response_model=UserModel | None)
