@@ -1,8 +1,9 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from core.enums import CurrencyEnum, UserStatusEnum
 from database import get_async_session
@@ -15,38 +16,49 @@ from exceptions.user_exceptions import (
 )
 from models.balance import UserBalance
 from models.user import User
-from schemas.users import RequestUserModel, RequestUserUpdateModel, ResponseUserModel, UserModel
+from schemas.users import (
+    RequestUserModel,
+    RequestUserUpdateModel,
+    ResponseUserBalanceModel,
+    ResponseUserModel,
+    UserModel,
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("", response_model=list[ResponseUserModel] | None, status_code=status.HTTP_200_OK)
-async def get_users(
-    user_id: int | None = None,
-    email: str | None = None,
-    user_status: str | None = None,
-    session: AsyncSession = Depends(get_async_session),
+@router.get("", response_model=list[ResponseUserModel], status_code=status.HTTP_200_OK)
+async def get_all_users_and_their_balances(
+    session: Annotated[AsyncSession, Depends(get_async_session)],
+    user_id: Annotated[int | None, Query(description="Filter by user_id", gt=0)] = None,
+    email: Annotated[str | None, Query(description="Filter by email")] = None,
+    user_status: Annotated[str | None, Query(description="Filter by user status")] = None,
 ) -> list[ResponseUserModel]:
-    q = select(User).order_by(User.created.desc())
+    query = select(User).options(selectinload(User.user_balances)).order_by(User.created)
+
     if user_id is not None:
-        q = q.where(User.id == user_id)
+        query = query.where(User.id == user_id)
     if email is not None:
-        q = q.where(User.email == email)
+        query = query.where(User.email == email)
     if user_status is not None:
-        q = q.where(User.status == user_status)
-    users = await session.execute(q)
-    users = users.scalars()
-    results = []
-    for user in users:
-        result = ResponseUserModel(
-            id=user.id, email=user.email, status=UserStatusEnum(user.status), created=user.created
+        query = query.where(User.status == user_status)
+
+    result = await session.execute(query)
+    users = result.scalars()
+
+    return [
+        ResponseUserModel(
+            id=user.id,
+            email=user.email,
+            status=user.status,
+            created=user.created,
+            balances=sorted(
+                (ResponseUserBalanceModel(currency=b.currency, amount=b.amount) for b in user.user_balances),
+                key=lambda x: x.amount,
+            ),
         )
-        balances = await session.execute(select(UserBalance).where(UserBalance.user_id == user.id))
-        balances = balances.scalars()
-        balances = sorted([{"currency": b.currency, "amount": b.amount} for b in balances], key=lambda x: x["amount"])
-        result.balances = balances
-        results.append(result)
-    return sorted(results, key=lambda x: x.created)
+        for user in users
+    ]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=UserModel)

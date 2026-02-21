@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import status
@@ -31,16 +32,18 @@ class RequestUserUpdateModel(BaseModel):
 
 
 class ResponseUserBalanceModel(BaseModel):
-    currency: CurrencyEnum | None = None
-    amount: float | None = None
+    currency: CurrencyEnum
+    amount: Annotated[Decimal, Field(ge=0, max_digits=15, decimal_places=2)]
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ResponseUserModel(BaseModel):
     id: int
-    email: str | None = None
-    status: UserStatusEnum | None = None
-    created: datetime | None = None
-    balances: list[ResponseUserBalanceModel] | None = None
+    email: str
+    status: UserStatusEnum
+    created: datetime
+    balances: list[ResponseUserBalanceModel]
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserModel(BaseModel):
