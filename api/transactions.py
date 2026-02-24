@@ -2,10 +2,10 @@ from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import ScalarResult, insert, select, update
+from sqlalchemy import ScalarResult, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.enums import CurrencyEnum
+from core.enums import UserStatusEnum
 from database import get_async_session
 from exceptions import transaction_exceptions
 from exceptions.common_exceptions import BadRequestDataException
@@ -40,57 +40,40 @@ async def get_transactions(
     return transactions
 
 
-@router.post("/{user_id}/transactions", response_model=TransactionModel | None, status_code=status.HTTP_200_OK)
-async def post_transaction(
-    user_id: int, transaction: RequestTransactionModel, session: AsyncSession = Depends(get_async_session)
+@router.post("/{user_id}/transactions", response_model=TransactionModel, status_code=status.HTTP_201_CREATED)
+async def create_transaction(
+    user_id: int, transaction: RequestTransactionModel, session: Annotated[AsyncSession, Depends(get_async_session)]
 ):
-    if user_id < 0:
+    if user_id <= 0:
         raise BadRequestDataException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unprocessable data in request"
         )
-    if transaction.currency not in {str(x) for x in CurrencyEnum}:
-        raise BadRequestDataException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Currency does not exist"
-        )
-    if transaction.amount == 0:
-        raise BadRequestDataException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Transaction can not have zero amount"
-        )
 
-    db_user = await session.execute(select(User).where(User.id == user_id))
-    db_user = db_user.scalar()
+    result = await session.execute(select(User).where(User.id == user_id))
+    db_user = result.scalar()
     if not db_user:
         raise UserNotExistsException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User with id=`{0}` does not exist".format(user_id)
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id=`{user_id}` does not exist"
         )
-    if db_user.status != "ACTIVE":
+    if db_user.status != UserStatusEnum.ACTIVE:
         raise transaction_exceptions.CreateTransactionForBlockedUserException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User with id=`{0}` is blocked".format(user_id)
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id=`{user_id}` is blocked"
         )
 
-    db_user_balance = await session.execute(
-        select(UserBalance).where((UserBalance.user_id == user_id) & (UserBalance.currency == transaction.currency))
+    result = await session.execute(
+        select(UserBalance).where(UserBalance.user_id == user_id, UserBalance.currency == transaction.currency)
     )
-    db_user_balance = db_user_balance.scalar()
-    if float(db_user_balance.amount) + transaction.amount < 0:
+    db_user_balance = result.scalar()
+
+    if db_user_balance.amount + transaction.amount < 0:
         raise NegativeBalanceException(status_code=status.HTTP_400_BAD_REQUEST, detail="Negative balance")
 
-    await session.execute(
-        update(UserBalance).values(**{"amount": transaction.amount}).where(UserBalance.id == db_user_balance.id)
-    )
+    db_user_balance.amount += transaction.amount
+    new_transaction = Transaction(user_id=user_id, **transaction.model_dump())
+    session.add(new_transaction)
     await session.commit()
-    await session.execute(
-        insert(Transaction).values(
-            **{
-                "user_id": db_user.id,
-                "currency": transaction.currency,
-                "amount": transaction.amount,
-                "status": "PROCESSED",
-                "created": datetime.utcnow(),
-            }
-        )
-    )
-    await session.commit()
+    await session.refresh(new_transaction)
+    return new_transaction
 
 
 @router.patch("/{user_id}/transactions/{transaction_id}", response_model=TransactionModel | None)

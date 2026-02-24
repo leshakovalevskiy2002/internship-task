@@ -23,7 +23,8 @@ class Transaction(Base):
             values_callable=lambda currencies: [currency.value for currency in currencies],
             native_enum=False,
             name="transaction_currency_enum",
-        )
+        ),
+        default=CurrencyEnum.USD,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(precision=15, scale=2), server_default=text("0.00"))
     status: Mapped[TransactionStatusEnum] = mapped_column(
@@ -32,7 +33,8 @@ class Transaction(Base):
             values_callable=lambda statuses: [status.value for status in statuses],
             native_enum=False,
             name="transaction_status",
-        )
+        ),
+        default=TransactionStatusEnum.PROCESSED,
     )
     created: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

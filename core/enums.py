@@ -20,5 +20,5 @@ class UserStatusEnum(StrEnum):
 
 
 class TransactionStatusEnum(StrEnum):
-    processed = "PROCESSED"
-    roll_backed = "ROLLBACKED"
+    PROCESSED = "PROCESSED"
+    ROLL_BACKED = "ROLLBACKED"
