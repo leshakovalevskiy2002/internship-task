@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import insert, select, update
+from sqlalchemy import ScalarResult, insert, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.enums import CurrencyEnum, TransactionStatusEnum
+from core.enums import CurrencyEnum
 from database import get_async_session
 from exceptions import transaction_exceptions
 from exceptions.common_exceptions import BadRequestDataException
@@ -26,30 +27,17 @@ from schemas.transactions import RequestTransactionModel, TransactionModel
 router = APIRouter(tags=["transactions"])
 
 
-@router.get("/transactions", response_model=list[TransactionModel] | None, status_code=status.HTTP_200_OK)
+@router.get("/transactions", response_model=list[TransactionModel], status_code=status.HTTP_200_OK)
 async def get_transactions(
-    user_id: int | None = None, session: AsyncSession = Depends(get_async_session)
-) -> list[TransactionModel]:
-    q = select(Transaction).order_by(Transaction.created.desc())
+    session: Annotated[AsyncSession, Depends(get_async_session)], user_id: int | None = None
+) -> ScalarResult[Transaction]:
+    query = select(Transaction).order_by(Transaction.created.desc())
     if user_id:
-        q = q.where(Transaction.user_id == user_id)
+        query = query.where(Transaction.user_id == user_id)
 
-    transactions = await session.execute(q)
-    transactions = transactions.scalars()
-    results = []
-    for t in transactions:
-        result = TransactionModel(
-            **{
-                "id": t.id,
-                "user_id": t.user_id,
-                "currency": CurrencyEnum(t.currency),
-                "amount": t.amount,
-                "status": TransactionStatusEnum(t.status),
-                "created": t.created,
-            }
-        )
-        results.append(result)
-    return results
+    result = await session.execute(query)
+    transactions = result.scalars()
+    return transactions
 
 
 @router.post("/{user_id}/transactions", response_model=TransactionModel | None, status_code=status.HTTP_200_OK)
