@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, status
-from sqlalchemy import ScalarResult, select, update
+from sqlalchemy import ScalarResult, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.enums import TransactionStatusEnum, UserStatusEnum
@@ -14,11 +15,11 @@ from models.balance import UserBalance
 from models.transaction import Transaction
 from models.user import User
 from queries import (
-    get_not_rollbacked_deposit_amount,
-    get_not_rollbacked_transactions_count,
-    get_not_rollbacked_withdraw_amount,
+    get_not_roll_backed_deposit_amount,
+    get_not_roll_backed_withdraw_amount,
+    get_not_roll_backed_transactions_count,
     get_registered_and_deposit_users_count,
-    get_registered_and_not_rollbacked_deposit_users_count,
+    get_registered_and_not_roll_backed_deposit_users_count,
     get_registered_users_count,
     get_transactions_count,
 )
@@ -132,48 +133,47 @@ async def rollback_transaction(
     return db_transaction
 
 
-@router.get("/transactions/analysis", response_model=list[dict] | None, status_code=status.HTTP_200_OK)
-async def get_transaction_analysis(session: AsyncSession = Depends(get_async_session)) -> list[dict]:
-    dt_gt = datetime.utcnow().date() - timedelta(weeks=1) + timedelta(days=1)
-    dt_lt = datetime.utcnow().date()
+@router.get("/transactions/analysis", status_code=status.HTTP_200_OK)
+async def get_transaction_analysis(session: Annotated[AsyncSession, Depends(get_async_session)]) -> list[dict]:
+    datetime_now = datetime.now(ZoneInfo("UTC"))
+    datetime_week_ago = datetime_now - timedelta(days=6)
+
+    date_now = datetime_now.date()
+    date_week_ago = datetime_week_ago.date()
+
     results = []
-    for i in range(52):
-        registered_users_count = await get_registered_users_count(session, dt_gt=dt_gt, dt_lt=dt_lt)
+    for _ in range(52):
+        registered_users_count = await get_registered_users_count(session, start_date=date_week_ago, end_date=date_now)
         registered_and_deposit_users_count = await get_registered_and_deposit_users_count(
-            session, dt_gt=dt_gt, dt_lt=dt_lt
+            session, start_date=date_week_ago, end_date=date_now
         )
-        registered_and_not_rollbacked_deposit_users_count = await get_registered_and_not_rollbacked_deposit_users_count(
-            session, dt_gt=dt_gt, dt_lt=dt_lt
+        registered_and_not_roll_backed_deposit_users_count = (
+            await get_registered_and_not_roll_backed_deposit_users_count(
+                session, start_date=date_week_ago, end_date=date_now
+            )
         )
-        not_rollbacked_deposit_amount = await get_not_rollbacked_deposit_amount(session, dt_gt=dt_gt, dt_lt=dt_lt)
-        not_rollbacked_withdraw_amount = await get_not_rollbacked_withdraw_amount(session, dt_gt=dt_gt, dt_lt=dt_lt)
-        transactions_count = await get_transactions_count(session, dt_gt=dt_gt, dt_lt=dt_lt)
-        not_rollbacked_transactions_count = await get_not_rollbacked_transactions_count(
-            session, dt_gt=dt_gt, dt_lt=dt_lt
+        not_roll_backed_deposit_amount = await get_not_roll_backed_deposit_amount(
+            session, start_date=date_week_ago, end_date=date_now
+        )
+        not_roll_backed_withdraw_amount = await get_not_roll_backed_withdraw_amount(
+            session, start_date=date_week_ago, end_date=date_now
+        )
+        transactions_count = await get_transactions_count(session, start_date=date_week_ago, end_date=date_now)
+        not_roll_backed_transactions_count = await get_not_roll_backed_transactions_count(
+            session, start_date=date_week_ago, end_date=date_now
         )
         result = {
-            "start_date": dt_gt,
-            "end_date": dt_lt,
+            "start_date": date_week_ago,
+            "end_date": date_now,
             "registered_users_count": registered_users_count,
             "registered_and_deposit_users_count": registered_and_deposit_users_count,
-            "registered_and_not_rollbacked_deposit_users_count": registered_and_not_rollbacked_deposit_users_count,
-            "not_rollbacked_deposit_amount": not_rollbacked_deposit_amount,
-            "not_rollbacked_withdraw_amount": not_rollbacked_withdraw_amount,
+            "registered_and_not_roll_backed_deposit_users_count": registered_and_not_roll_backed_deposit_users_count,
+            "not_roll_backed_deposit_amount": not_roll_backed_deposit_amount,
+            "not_roll_backed_withdraw_amount": not_roll_backed_withdraw_amount,
             "transactions_count": transactions_count,
-            "not_rollbacked_transactions_count": not_rollbacked_transactions_count,
+            "not_roll_backed_transactions_count": not_roll_backed_transactions_count,
         }
-        for field in (
-            "registered_users_count",
-            "registered_and_deposit_users_count",
-            "registered_and_not_rollbacked_deposit_users_count",
-            "not_rollbacked_deposit_amount",
-            "not_rollbacked_withdraw_amount",
-            "transactions_count",
-            "not_rollbacked_transactions_count",
-        ):
-            if result[field] > 0:
-                results.append(result)
-                break
-        dt_gt -= timedelta(weeks=1)
-        dt_lt -= timedelta(weeks=1)
+        results.append(result)
+        date_week_ago -= timedelta(weeks=1)
+        date_now -= timedelta(weeks=1)
     return results
