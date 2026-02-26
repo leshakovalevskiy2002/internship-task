@@ -3,11 +3,13 @@ from uuid import uuid4
 
 import uvicorn
 from fastapi import FastAPI, Request, Response, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from loguru import logger
 
 from api import transactions, users
 from database import create_db_and_tables
+from exceptions.handlers import request_validation_exception_handler
 
 logger.add("logs/info.log", format="Log: [{extra[log_id]}:{time} - {level} - {message}]", level="INFO", enqueue=True)
 
@@ -34,6 +36,7 @@ app = FastAPI(title="This application works with users and their transactions", 
 
 app.include_router(transactions.router)
 app.include_router(users.router)
+app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
 
 
 @app.middleware("http")

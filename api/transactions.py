@@ -2,22 +2,21 @@ from datetime import datetime, timedelta
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy import ScalarResult, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.enums import TransactionStatusEnum, UserStatusEnum
 from database import get_async_session
 from exceptions import transaction_exceptions
-from exceptions.common_exceptions import BadRequestDataException
 from exceptions.user_exceptions import NegativeBalanceException, UserNotExistsException
 from models.balance import UserBalance
 from models.transaction import Transaction
 from models.user import User
 from queries import (
     get_not_roll_backed_deposit_amount,
-    get_not_roll_backed_withdraw_amount,
     get_not_roll_backed_transactions_count,
+    get_not_roll_backed_withdraw_amount,
     get_registered_and_deposit_users_count,
     get_registered_and_not_roll_backed_deposit_users_count,
     get_registered_users_count,
@@ -43,13 +42,10 @@ async def get_transactions(
 
 @router.post("/{user_id}/transactions", response_model=TransactionModel, status_code=status.HTTP_201_CREATED)
 async def create_transaction(
-    user_id: int, transaction: RequestTransactionModel, session: Annotated[AsyncSession, Depends(get_async_session)]
+    user_id: Annotated[int, Path(gt=0)],
+    transaction: RequestTransactionModel,
+    session: Annotated[AsyncSession, Depends(get_async_session)],
 ):
-    if user_id <= 0:
-        raise BadRequestDataException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unprocessable data in request"
-        )
-
     result = await session.execute(select(User).where(User.id == user_id))
     db_user = result.scalar()
     if not db_user:
@@ -79,12 +75,10 @@ async def create_transaction(
 
 @router.patch("/{user_id}/transactions/{transaction_id}", response_model=TransactionModel)
 async def rollback_transaction(
-    user_id: int, transaction_id: int, session: Annotated[AsyncSession, Depends(get_async_session)]
+    user_id: Annotated[int, Path(gt=0)],
+    transaction_id: Annotated[int, Path(gt=0)],
+    session: Annotated[AsyncSession, Depends(get_async_session)],
 ):
-    if user_id <= 0 or transaction_id <= 0:
-        raise BadRequestDataException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unprocessable data in request"
-        )
     result = await session.execute(select(User).where(User.id == user_id))
     db_user = result.scalar()
     if not db_user:

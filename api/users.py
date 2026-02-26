@@ -1,13 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from core.enums import CurrencyEnum, UserStatusEnum
 from database import get_async_session
-from exceptions.common_exceptions import BadRequestDataException
 from exceptions.user_exceptions import (
     UserAlreadyActiveException,
     UserAlreadyBlockedException,
@@ -91,14 +90,9 @@ async def create_user_and_his_balances(
 @router.patch("/{user_id}", response_model=UserModel)
 async def update_user_status(
     session: Annotated[AsyncSession, Depends(get_async_session)],
-    user_id: int,
+    user_id: Annotated[int, Path(gt=0)],
     user: RequestUserUpdateModel,
 ):
-    if user_id < 0:
-        raise BadRequestDataException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Unprocessable data in request"
-        )
-
     result = await session.execute(select(User).where(User.id == user_id))
     db_user = result.scalar()
     if db_user is None:
