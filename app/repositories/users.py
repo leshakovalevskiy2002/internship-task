@@ -1,11 +1,12 @@
 from typing import Sequence
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.enums import UserStatusEnum
-from app.models import User
+from app.models.user import User
 
 
 class UserRepository:
@@ -16,13 +17,13 @@ class UserRepository:
         result = await self.session.scalar(select(User).where(User.email == email))
         return result
 
-    async def get_user_by_id(self, user_id: int) -> User | None:
+    async def get_user_by_id(self, user_id: UUID) -> User | None:
         result = await self.session.scalar(select(User).where(User.id == user_id))
         return result
 
     async def get_users_with_balances(
         self,
-        user_id: int | None = None,
+        user_id: UUID | None = None,
         email: str | None = None,
         user_status: UserStatusEnum | None = None,
     ) -> Sequence[User]:

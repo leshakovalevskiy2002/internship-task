@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
+from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, UniqueConstraint, func, text
+from sqlalchemy import Enum, ForeignKey, Numeric, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.enums import CurrencyEnum
@@ -15,10 +15,7 @@ if TYPE_CHECKING:
 
 
 class UserBalance(Base):
-    __tablename__ = "user_balances"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     currency: Mapped[CurrencyEnum] = mapped_column(
         Enum(
             CurrencyEnum,
@@ -29,8 +26,6 @@ class UserBalance(Base):
         default=CurrencyEnum.USD,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(precision=15, scale=2), server_default=text("0.00"))
-    created: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     owner: Mapped["User"] = relationship("User", back_populates="user_balances", uselist=False)
 

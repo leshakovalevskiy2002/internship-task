@@ -1,18 +1,24 @@
 from collections.abc import AsyncGenerator
+import re
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, declared_attr
 
 from app.config.base import DataBaseSettings, get_database_settings
+from app.models.base import BaseMixin
 
 database_settings: DataBaseSettings = get_database_settings()
 DATABASE_URL = database_settings.url()
 engine = create_async_engine(DATABASE_URL, echo=True)
 
 
-class Base(DeclarativeBase):
-    pass
+class Base(BaseMixin, DeclarativeBase):
+    @classmethod
+    @declared_attr.directive
+    def __tablename__(cls) -> str:
+        snake_name = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", cls.__name__).lower()
+        return snake_name if snake_name.endswith("s") else f"{snake_name}s"
 
 
 async_session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)

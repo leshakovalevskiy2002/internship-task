@@ -1,8 +1,8 @@
-from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
+from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, func, text
+from sqlalchemy import Enum, ForeignKey, Numeric, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.enums import CurrencyEnum, TransactionStatusEnum
@@ -13,10 +13,7 @@ if TYPE_CHECKING:
 
 
 class Transaction(Base):
-    __tablename__ = "transactions"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     currency: Mapped[CurrencyEnum] = mapped_column(
         Enum(
             CurrencyEnum,
@@ -36,5 +33,3 @@ class Transaction(Base):
         ),
         default=TransactionStatusEnum.PROCESSED,
     )
-    created: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

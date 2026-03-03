@@ -1,5 +1,6 @@
 from decimal import Decimal
 from typing import Sequence
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,11 +28,11 @@ class TransactionService:
         self.balance_repo = BalanceRepository(session)
         self.transaction_repo = TransactionRepository(session)
 
-    async def get_all_transactions(self, user_id: int | None = None) -> Sequence[Transaction]:
+    async def get_all_transactions(self, user_id: UUID | None = None) -> Sequence[Transaction]:
         db_transactions = await self.transaction_repo.get_all_transactions(user_id=user_id)
         return db_transactions
 
-    async def create_transaction(self, user_id: int, currency: CurrencyEnum, amount: Decimal) -> Transaction:
+    async def create_transaction(self, user_id: UUID, currency: CurrencyEnum, amount: Decimal) -> Transaction:
         db_user = await self.user_repo.get_user_by_id(user_id)
         if db_user is None:
             raise TransactionUserNotFoundError(user_id)
@@ -57,7 +58,7 @@ class TransactionService:
         await self.session.refresh(new_transaction)
         return new_transaction
 
-    async def rollback_transaction(self, transaction_id: int, user_id: int) -> Transaction:
+    async def rollback_transaction(self, transaction_id: UUID, user_id: UUID) -> Transaction:
         db_user = await self.user_repo.get_user_by_id(user_id)
         if db_user is None:
             raise TransactionUserNotFoundError(user_id)

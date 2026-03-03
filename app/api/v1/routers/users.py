@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +21,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get("", response_model=list[ResponseUserModel], status_code=status.HTTP_200_OK)
 async def get_all_users_and_their_balances(
     session: Annotated[AsyncSession, Depends(get_async_session)],
-    user_id: Annotated[int | None, Query(description="Filter by user_id", gt=0)] = None,
+    user_id: Annotated[UUID | None, Query(description="Filter by user_id")] = None,
     email: Annotated[str | None, Query(description="Filter by email")] = None,
     user_status: Annotated[UserStatusEnum | None, Query(description="Filter by user status")] = None,
 ) -> list[ResponseUserModel]:
@@ -52,7 +53,7 @@ async def create_user_and_his_balances(
 @router.patch("/{user_id}", response_model=UserModel)
 async def update_user_status(
     session: Annotated[AsyncSession, Depends(get_async_session)],
-    user_id: Annotated[int, Path(gt=0)],
+    user_id: UUID,
     user: RequestUserUpdateModel,
 ):
     user_service = UserService(session)

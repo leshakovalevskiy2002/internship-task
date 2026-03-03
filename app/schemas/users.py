@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -34,7 +35,7 @@ class ResponseUserBalanceModel(BaseModel):
 
 
 class ResponseUserModel(BaseModel):
-    id: int
+    id: UUID
     email: str
     status: UserStatusEnum
     created: datetime
@@ -43,7 +44,7 @@ class ResponseUserModel(BaseModel):
 
 
 class UserModel(BaseModel):
-    id: int
+    id: UUID
     email: str
     status: UserStatusEnum
     created: datetime

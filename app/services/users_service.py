@@ -1,9 +1,10 @@
 from typing import Sequence
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import UserStatusEnum
-from app.models import User
+from app.models.user import User
 from app.repositories.balances import BalanceRepository
 from app.repositories.users import UserRepository
 from app.services.service_errors.user_errors import (
@@ -22,7 +23,7 @@ class UserService:
 
     async def get_users_with_balances(
         self,
-        user_id: int | None = None,
+        user_id: UUID | None = None,
         email: str | None = None,
         user_status: UserStatusEnum | None = None,
     ) -> Sequence[User]:
@@ -39,7 +40,7 @@ class UserService:
         await self.session.refresh(new_user)
         return new_user
 
-    async def update_user_status(self, user_id: int, new_status: UserStatusEnum) -> User:
+    async def update_user_status(self, user_id: UUID, new_status: UserStatusEnum) -> User:
         db_user = await self.user_repo.get_user_by_id(user_id)
         if db_user is None:
             raise UserNotFoundError(user_id)

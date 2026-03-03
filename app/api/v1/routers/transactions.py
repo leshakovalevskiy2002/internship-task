@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Annotated
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Path, status
@@ -22,9 +23,7 @@ router = APIRouter(tags=["transactions"])
 
 
 @router.get("/transactions", response_model=list[TransactionModel], status_code=status.HTTP_200_OK)
-async def get_transactions(
-    session: Annotated[AsyncSession, Depends(get_async_session)], user_id: int | None = None
-):
+async def get_transactions(session: Annotated[AsyncSession, Depends(get_async_session)], user_id: UUID | None = None):
     transaction_service = TransactionService(session)
     transactions = await transaction_service.get_all_transactions(user_id=user_id)
     return transactions
@@ -32,7 +31,7 @@ async def get_transactions(
 
 @router.post("/{user_id}/transactions", response_model=TransactionModel, status_code=status.HTTP_201_CREATED)
 async def create_transaction(
-    user_id: Annotated[int, Path(gt=0)],
+    user_id: UUID,
     transaction: RequestTransactionModel,
     session: Annotated[AsyncSession, Depends(get_async_session)],
 ):
@@ -46,8 +45,8 @@ async def create_transaction(
 
 @router.patch("/{user_id}/transactions/{transaction_id}", response_model=TransactionModel)
 async def rollback_transaction(
-    user_id: Annotated[int, Path(gt=0)],
-    transaction_id: Annotated[int, Path(gt=0)],
+    user_id: UUID,
+    transaction_id: UUID,
     session: Annotated[AsyncSession, Depends(get_async_session)],
 ):
     transaction_service = TransactionService(session)

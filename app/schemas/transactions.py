@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -30,8 +31,8 @@ class RequestTransactionModel(BaseModel):
 
 
 class TransactionModel(BaseModel):
-    id: int
-    user_id: int
+    id: UUID
+    user_id: UUID
     currency: CurrencyEnum
     amount: Annotated[Decimal, Field(max_digits=15, decimal_places=2, examples=[Decimal("12345.67")])]
     status: TransactionStatusEnum
