@@ -12,8 +12,11 @@ from services.transaction_errors import (
     NegativeBalanceError,
     TransactionUserBlockedError,
     TransactionUserNotFoundError,
-    UserBalanceNotFoundError, TransactionNotExistsError, TransactionDoesNotBelongToUserException,
-    TransactionAlreadyRollbackedException, TransactionBlockedUserException,
+    UserBalanceNotFoundError,
+    TransactionNotExistsError,
+    TransactionDoesNotBelongToUserException,
+    TransactionAlreadyRollbackedException,
+    TransactionBlockedUserException,
 )
 
 
@@ -64,10 +67,7 @@ class TransactionService:
             raise TransactionNotExistsError(transaction_id)
 
         if db_transaction.user_id != db_user.id:
-            raise TransactionDoesNotBelongToUserException(
-                transaction_id=transaction_id,
-                user_id=db_user.id
-            )
+            raise TransactionDoesNotBelongToUserException(transaction_id=transaction_id, user_id=db_user.id)
 
         if db_transaction.status == TransactionStatusEnum.ROLL_BACKED:
             raise TransactionAlreadyRollbackedException(transaction_id=transaction_id)

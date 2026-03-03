@@ -7,9 +7,15 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from loguru import logger
 
-from api import transactions, users
+from app.api.handlers import (
+    request_validation_exception_handler,
+    transaction_service_exception_handler,
+    user_service_exception_handler,
+)
+from app.api.v1.routers import transactions, users
 from database import create_db_and_tables
-from exceptions.handlers import request_validation_exception_handler
+from services.transaction_errors import TransactionServiceError
+from services.user_errors import UserServiceError
 
 logger.add("logs/info.log", format="Log: [{extra[log_id]}:{time} - {level} - {message}]", level="INFO", enqueue=True)
 
@@ -37,6 +43,8 @@ app = FastAPI(title="This application works with users and their transactions", 
 app.include_router(transactions.router)
 app.include_router(users.router)
 app.add_exception_handler(RequestValidationError, request_validation_exception_handler)
+app.add_exception_handler(UserServiceError, user_service_exception_handler)
+app.add_exception_handler(TransactionServiceError, transaction_service_exception_handler)
 
 
 @app.middleware("http")

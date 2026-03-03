@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.enums import UserStatusEnum
@@ -13,12 +13,6 @@ from schemas.users import (
     UserModel,
 )
 from services.users_service import UserService
-from services.user_errors import (
-    UserAlreadyActiveError,
-    UserAlreadyBlockedError,
-    UserAlreadyExistsError,
-    UserNotFoundError,
-)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -52,10 +46,7 @@ async def create_user_and_his_balances(
     new_user_data: RequestUserModel, session: Annotated[AsyncSession, Depends(get_async_session)]
 ):
     user_service = UserService(session)
-    try:
-        return await user_service.create_user_and_balances(new_user_data.email)
-    except UserAlreadyExistsError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+    return await user_service.create_user_and_balances(new_user_data.email)
 
 
 @router.patch("/{user_id}", response_model=UserModel)
@@ -65,9 +56,4 @@ async def update_user_status(
     user: RequestUserUpdateModel,
 ):
     user_service = UserService(session)
-    try:
-        return await user_service.update_user_status(user_id=user_id, new_status=user.status)
-    except UserNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    except (UserAlreadyBlockedError, UserAlreadyActiveError) as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    return await user_service.update_user_status(user_id=user_id, new_status=user.status)
