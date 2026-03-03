@@ -1,23 +1,24 @@
 from decimal import Decimal
+from typing import Sequence
 
-from sqlalchemy import ScalarResult, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.enums import CurrencyEnum, TransactionStatusEnum
-from models.transaction import Transaction
+from app.core.enums import CurrencyEnum, TransactionStatusEnum
+from app.models.transaction import Transaction
 
 
 class TransactionRepository:
     def __init__(self, session: AsyncSession):
         self.session: AsyncSession = session
 
-    async def get_all_transactions(self, user_id: int | None = None) -> ScalarResult[Transaction]:
+    async def get_all_transactions(self, user_id: int | None = None) -> Sequence[Transaction]:
         query = select(Transaction).order_by(Transaction.created.desc())
         if user_id:
             query = query.where(Transaction.user_id == user_id)
 
         db_transactions = await self.session.scalars(query)
-        return db_transactions
+        return db_transactions.all()
 
     async def create_transaction(self, user_id: int, currency: CurrencyEnum, amount: Decimal) -> Transaction:
         new_transaction = Transaction(user_id=user_id, currency=currency, amount=amount)

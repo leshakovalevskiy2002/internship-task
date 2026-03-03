@@ -2,7 +2,7 @@ from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from services.transaction_errors import (
+from app.services.service_errors.transaction_errors import (
     NegativeBalanceError,
     TransactionAlreadyRollbackedException,
     TransactionBlockedUserException,
@@ -13,7 +13,7 @@ from services.transaction_errors import (
     TransactionUserNotFoundError,
     UserBalanceNotFoundError,
 )
-from services.user_errors import (
+from app.services.service_errors.user_errors import (
     UserAlreadyActiveError,
     UserAlreadyBlockedError,
     UserAlreadyExistsError,

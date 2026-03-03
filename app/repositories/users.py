@@ -4,8 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from core.enums import UserStatusEnum
-from models.user import User
+from app.core.enums import UserStatusEnum
+from app.models import User
 
 
 class UserRepository:
@@ -40,7 +40,7 @@ class UserRepository:
 
     async def update_user_status(self, user: User, status: UserStatusEnum) -> User:
         user.status = status
-        await self.session.commit()
+        await self.session.flush()
         return user
 
     async def create_user(self, email: str) -> User:

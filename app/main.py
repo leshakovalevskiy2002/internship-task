@@ -13,13 +13,13 @@ from app.api.handlers import (
     user_service_exception_handler,
 )
 from app.api.v1.routers import transactions, users
-from database import create_db_and_tables
-from services.transaction_errors import TransactionServiceError
-from services.user_errors import UserServiceError
+from app.repositories.database import create_db_and_tables
+from app.services import TransactionServiceError
+from app.services import UserServiceError
 
-logger.add("logs/info.log", format="Log: [{extra[log_id]}:{time} - {level} - {message}]", level="INFO", enqueue=True)
+logger.add("../logs/info.log", format="Log: [{extra[log_id]}:{time} - {level} - {message}]", level="INFO", enqueue=True)
 
-logger.add("logs/errors.log", level="ERROR", enqueue=True)
+logger.add("../logs/errors.log", level="ERROR", enqueue=True)
 
 
 @asynccontextmanager

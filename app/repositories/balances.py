@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.enums import CurrencyEnum
-from models.balance import UserBalance
+from app.core.enums import CurrencyEnum
+from app.models.balance import UserBalance
 from decimal import Decimal
 
 

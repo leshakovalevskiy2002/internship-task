@@ -3,12 +3,10 @@ from typing import Annotated
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Path, status
-from sqlalchemy import ScalarResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import get_async_session
-from models.transaction import Transaction
-from queries import (
+from app.repositories.database import get_async_session
+from app.repositories.queries import (
     get_not_roll_backed_deposit_amount,
     get_not_roll_backed_transactions_count,
     get_not_roll_backed_withdraw_amount,
@@ -17,8 +15,8 @@ from queries import (
     get_registered_users_count,
     get_transactions_count,
 )
-from schemas.transactions import RequestTransactionModel, TransactionModel
-from services.transactions_service import TransactionService
+from app.schemas.transactions import RequestTransactionModel, TransactionModel
+from app.services.transactions_service import TransactionService
 
 router = APIRouter(tags=["transactions"])
 
@@ -26,7 +24,7 @@ router = APIRouter(tags=["transactions"])
 @router.get("/transactions", response_model=list[TransactionModel], status_code=status.HTTP_200_OK)
 async def get_transactions(
     session: Annotated[AsyncSession, Depends(get_async_session)], user_id: int | None = None
-) -> ScalarResult[Transaction]:
+):
     transaction_service = TransactionService(session)
     transactions = await transaction_service.get_all_transactions(user_id=user_id)
     return transactions

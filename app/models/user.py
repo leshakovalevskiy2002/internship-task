@@ -6,11 +6,11 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, Enum, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from core.enums import UserStatusEnum
-from database import Base
+from app.core.enums import UserStatusEnum
+from app.repositories.database import Base
 
 if TYPE_CHECKING:
-    from models.balance import UserBalance
+    from app.models.balance import UserBalance
 
 
 class User(Base):

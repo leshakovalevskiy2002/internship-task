@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from core.enums import CurrencyEnum, UserStatusEnum
+from app.core.enums import CurrencyEnum, UserStatusEnum
 
 
 class RequestUserModel(BaseModel):

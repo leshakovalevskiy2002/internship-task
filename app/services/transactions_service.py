@@ -1,14 +1,14 @@
 from decimal import Decimal
+from typing import Sequence
 
-from sqlalchemy import ScalarResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.enums import CurrencyEnum, UserStatusEnum, TransactionStatusEnum
-from models.transaction import Transaction
-from repositories.balances import BalanceRepository
-from repositories.transactions import TransactionRepository
-from repositories.users import UserRepository
-from services.transaction_errors import (
+from app.core.enums import CurrencyEnum, UserStatusEnum, TransactionStatusEnum
+from app.models.transaction import Transaction
+from app.repositories.balances import BalanceRepository
+from app.repositories.transactions import TransactionRepository
+from app.repositories.users import UserRepository
+from app.services.service_errors.transaction_errors import (
     NegativeBalanceError,
     TransactionUserBlockedError,
     TransactionUserNotFoundError,
@@ -27,7 +27,7 @@ class TransactionService:
         self.balance_repo = BalanceRepository(session)
         self.transaction_repo = TransactionRepository(session)
 
-    async def get_all_transactions(self, user_id: int | None = None) -> ScalarResult[Transaction]:
+    async def get_all_transactions(self, user_id: int | None = None) -> Sequence[Transaction]:
         db_transactions = await self.transaction_repo.get_all_transactions(user_id=user_id)
         return db_transactions
 

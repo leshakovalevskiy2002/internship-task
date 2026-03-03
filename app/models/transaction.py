@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, func, text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from core.enums import CurrencyEnum, TransactionStatusEnum
-from database import Base
+from app.core.enums import CurrencyEnum, TransactionStatusEnum
+from app.repositories.database import Base
 
 if TYPE_CHECKING:
-    from models.user import User
+    pass
 
 
 class Transaction(Base):

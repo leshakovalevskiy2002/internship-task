@@ -3,16 +3,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.enums import UserStatusEnum
-from database import get_async_session
-from schemas.users import (
+from app.core.enums import UserStatusEnum
+from app.repositories.database import get_async_session
+from app.schemas.users import (
     RequestUserModel,
     RequestUserUpdateModel,
     ResponseUserBalanceModel,
     ResponseUserModel,
     UserModel,
 )
-from services.users_service import UserService
+from app.services.users_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 

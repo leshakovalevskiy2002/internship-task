@@ -2,11 +2,11 @@ from typing import Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.enums import UserStatusEnum
-from models.user import User
-from repositories.balances import BalanceRepository
-from repositories.users import UserRepository
-from services.user_errors import (
+from app.core.enums import UserStatusEnum
+from app.models import User
+from app.repositories.balances import BalanceRepository
+from app.repositories.users import UserRepository
+from app.services.service_errors.user_errors import (
     UserAlreadyActiveError,
     UserAlreadyBlockedError,
     UserAlreadyExistsError,
@@ -50,5 +50,6 @@ class UserService:
             raise UserAlreadyActiveError(user_id)
 
         await self.user_repo.update_user_status(db_user, new_status)
+        await self.session.commit()
         await self.session.refresh(db_user)
         return db_user

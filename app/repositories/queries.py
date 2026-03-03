@@ -3,9 +3,9 @@ from datetime import date
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.enums import CurrencyEnum, TransactionStatusEnum
-from models.transaction import Transaction
-from models.user import User
+from app.core.enums import CurrencyEnum, TransactionStatusEnum
+from app.models import Transaction
+from app.models import User
 
 EXCHANGE_RATES_TO_USD = {
     CurrencyEnum.USD: 1,
@@ -149,7 +149,7 @@ async def get_not_roll_backed_transactions_count(session: AsyncSession, start_da
         .where(
             func.date(Transaction.created) >= start_date,
             func.date(Transaction.created) <= end_date,
-            Transaction.status != TransactionStatusEnum.ROLL_BACKED
+            Transaction.status != TransactionStatusEnum.ROLL_BACKED,
         )
     )
     result = await session.execute(query)

@@ -7,11 +7,11 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from core.enums import CurrencyEnum
-from database import Base
+from app.core.enums import CurrencyEnum
+from app.repositories.database import Base
 
 if TYPE_CHECKING:
-    from models.user import User
+    from app.models.user import User
 
 
 class UserBalance(Base):

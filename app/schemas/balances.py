@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from pydantic.v1 import root_validator
 
-from core.enums import CurrencyEnum
+from app.core.enums import CurrencyEnum
 
 
 class UserBalanceModel(BaseModel):

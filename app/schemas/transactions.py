@@ -4,7 +4,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from core.enums import CurrencyEnum, TransactionStatusEnum
+from app.core.enums import CurrencyEnum, TransactionStatusEnum
 
 
 class RequestTransactionModel(BaseModel):
