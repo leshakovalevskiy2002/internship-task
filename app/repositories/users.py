@@ -14,12 +14,14 @@ class UserRepository:
         self.session: AsyncSession = session
 
     async def get_user_by_email(self, email: str) -> User | None:
-        result = await self.session.scalar(select(User).where(User.email == email))
-        return result
+        query = select(User).where(User.email == email)
+        result = await self.session.scalars(query)
+        return result.one_or_none()
 
     async def get_user_by_id(self, user_id: UUID) -> User | None:
-        result = await self.session.scalar(select(User).where(User.id == user_id))
-        return result
+        query = select(User).where(User.id == user_id)
+        result = await self.session.scalars(query)
+        return result.one_or_none()
 
     async def get_users_with_balances(
         self,

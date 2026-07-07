@@ -29,7 +29,8 @@ class TransactionRepository:
 
     async def get_transaction_by_id(self, transaction_id: UUID) -> Transaction | None:
         query = select(Transaction).where(Transaction.id == transaction_id)
-        return await self.session.scalar(query)
+        result = await self.session.scalars(query)
+        return result.one_or_none()
 
     async def roll_back_transaction(self, transaction: Transaction) -> Transaction:
         transaction.status = TransactionStatusEnum.ROLL_BACKED

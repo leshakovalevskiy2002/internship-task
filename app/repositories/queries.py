@@ -4,8 +4,8 @@ from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import CurrencyEnum, TransactionStatusEnum
-from app.models import Transaction
-from app.models import User
+from app.models.transaction import Transaction
+from app.models.user import User
 
 EXCHANGE_RATES_TO_USD = {
     CurrencyEnum.USD: 1,

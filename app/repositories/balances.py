@@ -1,10 +1,11 @@
+from decimal import Decimal
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.enums import CurrencyEnum
 from app.models.balance import UserBalance
-from decimal import Decimal
-from uuid import UUID
 
 
 class BalanceRepository:
@@ -16,10 +17,9 @@ class BalanceRepository:
             self.session.add(UserBalance(user_id=user_id, currency=currency))
 
     async def get_user_balance(self, user_id: UUID, currency: CurrencyEnum) -> UserBalance | None:
-        result = await self.session.scalar(
-            select(UserBalance).where(UserBalance.user_id == user_id, UserBalance.currency == currency)
-        )
-        return result
+        query = select(UserBalance).where(UserBalance.user_id == user_id, UserBalance.currency == currency)
+        result = await self.session.scalars(query)
+        return result.one_or_none()
 
     async def update_balance_amount(self, user_balance: UserBalance, new_amount: Decimal) -> UserBalance:
         user_balance.amount = new_amount

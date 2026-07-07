@@ -6,7 +6,7 @@ from sqlalchemy import Enum, ForeignKey, Numeric, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.enums import CurrencyEnum, TransactionStatusEnum
-from app.repositories.database import Base
+from app.models.base import Base
 
 if TYPE_CHECKING:
     pass

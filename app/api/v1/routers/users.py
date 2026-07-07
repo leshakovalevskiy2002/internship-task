@@ -1,11 +1,11 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Path, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config.database import get_async_session
 from app.core.enums import UserStatusEnum
-from app.repositories.database import get_async_session
 from app.schemas.users import (
     RequestUserModel,
     RequestUserUpdateModel,

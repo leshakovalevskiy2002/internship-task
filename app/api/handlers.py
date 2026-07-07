@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -39,10 +41,12 @@ def _format_validation_errors(exc: RequestValidationError) -> str:
     return str(message)
 
 
-async def request_validation_exception_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
+async def request_validation_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+    error = cast(RequestValidationError, exc)
+
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": _format_validation_errors(exc)},
+        content={"detail": _format_validation_errors(error)},
     )
 
 
@@ -74,9 +78,11 @@ def _status_for_transaction_error(exc: TransactionServiceError) -> int:
     return status.HTTP_400_BAD_REQUEST
 
 
-async def user_service_exception_handler(_request: Request, exc: UserServiceError) -> JSONResponse:
-    return JSONResponse(status_code=_status_for_user_error(exc), content={"detail": str(exc)})
+async def user_service_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+    error = cast(UserServiceError, exc)
+    return JSONResponse(status_code=_status_for_user_error(error), content={"detail": str(exc)})
 
 
-async def transaction_service_exception_handler(_request: Request, exc: TransactionServiceError) -> JSONResponse:
-    return JSONResponse(status_code=_status_for_transaction_error(exc), content={"detail": str(exc)})
+async def transaction_service_exception_handler(_request: Request, exc: Exception) -> JSONResponse:
+    error = cast(TransactionServiceError, exc)
+    return JSONResponse(status_code=_status_for_transaction_error(error), content={"detail": str(exc)})
