@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config.database import get_async_session
+from app.config.settings import get_async_session
 from app.repositories.queries import (
     get_not_roll_backed_deposit_amount,
     get_not_roll_backed_transactions_count,

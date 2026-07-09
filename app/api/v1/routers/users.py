@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config.database import get_async_session
+from app.config.settings import get_async_session
 from app.core.enums import UserStatusEnum
 from app.schemas.users import (
     RequestUserModel,
