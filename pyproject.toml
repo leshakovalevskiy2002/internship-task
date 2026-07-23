@@ -38,6 +38,9 @@ isort = ">=5.0.0,<7"
 mypy = "^1.19.1"
 
 
+[tool.poetry.group.prod.dependencies]
+gunicorn = "^26.0.0"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
