@@ -1,0 +1,31 @@
+name: transactions-service-dev
+
+services:
+  api:
+    build: .
+    volumes:
+      - ./app:/usr/src/app/app
+    command: python -m app.main
+    ports:
+      - "8000:7999"
+    env_file:
+      - .env.dev
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    env_file:
+      - .env.dev
+
+volumes:
+  postgres-data-dev:

@@ -3,13 +3,16 @@ from pathlib import Path
 from loguru import logger
 
 
+LOG_DIR = Path(__file__).resolve().parent.parent / "logs"
+
+
 def setup_logging() -> None:
     logger.remove()
 
-    Path("logs").mkdir(exist_ok=True)
+    LOG_DIR.mkdir(exist_ok=True)
 
     logger.add(
-        "logs/info.log",
+        LOG_DIR / "info.log",
         format="Log: [{extra[log_id]}:{time} - {level} - {message}]",
         level="INFO",
         enqueue=True,
@@ -17,7 +20,7 @@ def setup_logging() -> None:
         retention="7 days",
     )
     logger.add(
-        "logs/errors.log",
+        LOG_DIR / "errors.log",
         level="ERROR",
         rotation="10 MB",
         retention="30 days",
