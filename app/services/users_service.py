@@ -1,11 +1,8 @@
 from typing import Sequence
 from uuid import UUID
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.enums import UserStatusEnum
 from app.models.user import User
-from app.repositories.balances import BalanceRepository
 from app.repositories.users import UserRepository
 from app.services.service_errors.user_errors import (
     UserAlreadyActiveError,
@@ -13,13 +10,12 @@ from app.services.service_errors.user_errors import (
     UserAlreadyExistsError,
     UserNotFoundError,
 )
+from app.uow import UnitOfWork
 
 
-class UserService:
-    def __init__(self, session: AsyncSession):
-        self.session = session
-        self.user_repo = UserRepository(session)
-        self.balance_repo = BalanceRepository(session)
+class UserServiceRead:
+    def __init__(self, user_repo: UserRepository) -> None:
+        self.user_repo = user_repo
 
     async def get_users_with_balances(
         self,
@@ -27,30 +23,40 @@ class UserService:
         email: str | None = None,
         user_status: UserStatusEnum | None = None,
     ) -> Sequence[User]:
-        return await self.user_repo.get_users_with_balances(user_id=user_id, email=email, user_status=user_status)
+        return await self.user_repo.get_users_with_balances(user_id, email, user_status)
+
+
+class UserServiceWrite:
+    def __init__(self, uow: UnitOfWork) -> None:
+        self.uow = uow
 
     async def create_user_and_balances(self, email: str) -> User:
-        existing_user = await self.user_repo.get_user_by_email(email)
-        if existing_user is not None:
-            raise UserAlreadyExistsError(email)
+        async with self.uow as uow:
+            existing_user = await uow.users.get_user_by_email(email)
 
-        new_user = await self.user_repo.create_user(email)
-        await self.balance_repo.create_default_balances_for_user(new_user.id)
-        await self.session.commit()
-        await self.session.refresh(new_user)
-        return new_user
+            if existing_user:
+                raise UserAlreadyExistsError(email)
+
+            new_user = await uow.users.add_user(email)
+            await uow.balances.create_default_balances_for_user(new_user.id)
+            return new_user
 
     async def update_user_status(self, user_id: UUID, new_status: UserStatusEnum) -> User:
-        db_user = await self.user_repo.get_user_by_id(user_id)
-        if db_user is None:
-            raise UserNotFoundError(user_id)
+        async with self.uow as uow:
+            user = await uow.users.get_user_by_id(user_id)
 
-        if db_user.status == new_status:
-            if db_user.status == UserStatusEnum.BLOCKED:
-                raise UserAlreadyBlockedError(user_id)
-            raise UserAlreadyActiveError(user_id)
+            if user is None:
+                raise UserNotFoundError(user_id)
 
-        await self.user_repo.update_user_status(db_user, new_status)
-        await self.session.commit()
-        await self.session.refresh(db_user)
-        return db_user
+            if user.status == new_status:
+                if user.status == UserStatusEnum.BLOCKED:
+                    raise UserAlreadyBlockedError(user_id)
+
+                raise UserAlreadyActiveError(user_id)
+
+            user.status = new_status
+
+            await uow.session.flush()
+            await uow.session.refresh(user)
+
+            return user
