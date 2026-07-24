@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.settings import get_async_session
+from app.dependencies import get_transaction_service_read, get_transaction_service_write
 from app.repositories.queries import (
     get_not_roll_backed_deposit_amount,
     get_not_roll_backed_transactions_count,
@@ -17,25 +18,25 @@ from app.repositories.queries import (
     get_transactions_count,
 )
 from app.schemas.transactions import RequestTransactionModel, TransactionModel
-from app.services.transactions_service import TransactionService
+from app.services.transactions_service import TransactionServiceRead, TransactionServiceWrite
 
 router = APIRouter(tags=["transactions"])
 
 
 @router.get("/transactions", response_model=list[TransactionModel], status_code=status.HTTP_200_OK)
-async def get_transactions(session: Annotated[AsyncSession, Depends(get_async_session)], user_id: UUID | None = None):
-    transaction_service = TransactionService(session)
-    transactions = await transaction_service.get_all_transactions(user_id=user_id)
-    return transactions
+async def get_transactions(
+    transaction_service: Annotated[TransactionServiceRead, Depends(get_transaction_service_read)],
+    user_id: UUID | None = None,
+):
+    return await transaction_service.get_all_transactions(user_id=user_id)
 
 
 @router.post("/{user_id}/transactions", response_model=TransactionModel, status_code=status.HTTP_201_CREATED)
 async def create_transaction(
+    transaction_service: Annotated[TransactionServiceWrite, Depends(get_transaction_service_write)],
     user_id: UUID,
     transaction: RequestTransactionModel,
-    session: Annotated[AsyncSession, Depends(get_async_session)],
 ):
-    transaction_service = TransactionService(session)
     return await transaction_service.create_transaction(
         user_id=user_id,
         currency=transaction.currency,
@@ -45,11 +46,10 @@ async def create_transaction(
 
 @router.patch("/{user_id}/transactions/{transaction_id}", response_model=TransactionModel)
 async def rollback_transaction(
+    transaction_service: Annotated[TransactionServiceWrite, Depends(get_transaction_service_write)],
     user_id: UUID,
     transaction_id: UUID,
-    session: Annotated[AsyncSession, Depends(get_async_session)],
 ):
-    transaction_service = TransactionService(session)
     return await transaction_service.rollback_transaction(transaction_id=transaction_id, user_id=user_id)
 
 

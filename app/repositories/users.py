@@ -41,12 +41,7 @@ class UserRepository:
         result = await self.session.scalars(query)
         return result.all()
 
-    async def update_user_status(self, user: User, status: UserStatusEnum) -> User:
-        user.status = status
-        await self.session.flush()
-        return user
-
-    async def create_user(self, email: str) -> User:
+    async def add_user(self, email: str) -> User:
         new_user = User(email=email)
         self.session.add(new_user)
         await self.session.flush()
