@@ -41,7 +41,7 @@ class UserService:
                     raise UserAlreadyExistsError(email) from exc
             raise
 
-    async def update_user_status(self, user_id: UUID, new_status: UserStatusEnum) -> User:
+    async def change_user_status(self, user_id: UUID, new_status: UserStatusEnum) -> User:
         async with self.uow as uow:
             user = await uow.users.get_user_by_id(user_id)
 

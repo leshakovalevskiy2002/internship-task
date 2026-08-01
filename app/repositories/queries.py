@@ -2,8 +2,9 @@ from datetime import date
 
 from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
-from app.core.enums import CurrencyEnum, TransactionStatusEnum
+from app.core.enums import CurrencyEnum, TransactionTypeEnum
 from app.models.transaction import Transaction
 from app.models.user import User
 
@@ -22,11 +23,7 @@ EXCHANGE_RATES_TO_USD = {
 
 
 async def get_registered_users_count(session: AsyncSession, start_date: date, end_date: date):
-    query = (
-        select(func.count(User.id))
-        .select_from(User)
-        .where(func.date(User.created) >= start_date, func.date(User.created) <= end_date)
-    )
+    query = select(func.count(User.id)).select_from(User).where(func.date(User.created).between(start_date, end_date))
     result = await session.execute(query)
     registered_users = result.scalar()
     return registered_users
@@ -38,11 +35,9 @@ async def get_registered_and_deposit_users_count(session: AsyncSession, start_da
         .select_from(User)
         .join(Transaction, User.id == Transaction.user_id)
         .where(
-            func.date(User.created) >= start_date,
-            func.date(User.created) <= end_date,
-            Transaction.amount > 0,
-            func.date(Transaction.created) >= start_date,
-            func.date(Transaction.created) <= end_date,
+            func.date(User.created).between(start_date, end_date),
+            Transaction.operation_type == TransactionTypeEnum.DEPOSIT,
+            func.date(Transaction.created).between(start_date, end_date),
         )
     )
     result = await session.execute(query)
@@ -53,17 +48,18 @@ async def get_registered_and_deposit_users_count(session: AsyncSession, start_da
 async def get_registered_and_not_roll_backed_deposit_users_count(
     session: AsyncSession, start_date: date, end_date: date
 ):
+    reversal_transaction = aliased(Transaction)
+    subquery = select(reversal_transaction).where(Transaction.id == reversal_transaction.reversal_of_id).exists()
+
     query = (
         select(func.count(User.email.distinct()))
         .select_from(User)
         .join(Transaction, User.id == Transaction.user_id)
         .where(
-            func.date(User.created) >= start_date,
-            func.date(User.created) <= end_date,
-            Transaction.amount > 0,
-            func.date(Transaction.created) >= start_date,
-            func.date(Transaction.created) <= end_date,
-            Transaction.status != TransactionStatusEnum.ROLL_BACKED,
+            func.date(User.created).between(start_date, end_date),
+            Transaction.operation_type == TransactionTypeEnum.DEPOSIT,
+            func.date(Transaction.created).between(start_date, end_date),
+            ~subquery,
         )
     )
     result = await session.execute(query)
@@ -86,14 +82,16 @@ async def get_not_roll_backed_deposit_amount(session: AsyncSession, start_date: 
         else_=0,
     )
 
+    reversal_transaction = aliased(Transaction)
+    subquery = select(reversal_transaction).where(Transaction.id == reversal_transaction.reversal_of_id).exists()
+
     query = (
         select(func.coalesce(func.sum(Transaction.amount * rate_case), 0))
         .select_from(Transaction)
         .where(
-            func.date(Transaction.created) >= start_date,
-            func.date(Transaction.created) <= end_date,
-            Transaction.amount > 0,
-            Transaction.status != TransactionStatusEnum.ROLL_BACKED,
+            func.date(Transaction.created).between(start_date, end_date),
+            Transaction.operation_type == TransactionTypeEnum.DEPOSIT,
+            ~subquery,
         )
     )
     result = await session.execute(query)
@@ -116,14 +114,16 @@ async def get_not_roll_backed_withdraw_amount(session: AsyncSession, start_date:
         else_=0,
     )
 
+    reversal_transaction = aliased(Transaction)
+    subquery = select(reversal_transaction).where(Transaction.id == reversal_transaction.reversal_of_id).exists()
+
     query = (
         select(func.coalesce(func.sum(Transaction.amount * rate_case), 0))
         .select_from(Transaction)
         .where(
-            func.date(Transaction.created) >= start_date,
-            func.date(Transaction.created) <= end_date,
-            Transaction.amount < 0,
-            Transaction.status != TransactionStatusEnum.ROLL_BACKED,
+            func.date(Transaction.created).between(start_date, end_date),
+            Transaction.operation_type == TransactionTypeEnum.WITHDRAW,
+            ~subquery,
         )
     )
     result = await session.execute(query)
@@ -135,7 +135,10 @@ async def get_transactions_count(session: AsyncSession, start_date: date, end_da
     query = (
         select(func.count(Transaction.id))
         .select_from(Transaction)
-        .where(func.date(Transaction.created) >= start_date, func.date(Transaction.created) <= end_date)
+        .where(
+            func.date(Transaction.created).between(start_date, end_date),
+            Transaction.operation_type != TransactionTypeEnum.REVERSAL,
+        )
     )
     result = await session.execute(query)
     transactions_count = result.scalar()
@@ -143,13 +146,16 @@ async def get_transactions_count(session: AsyncSession, start_date: date, end_da
 
 
 async def get_not_roll_backed_transactions_count(session: AsyncSession, start_date: date, end_date: date):
+    reversal_transaction = aliased(Transaction)
+    subquery = select(reversal_transaction).where(Transaction.id == reversal_transaction.reversal_of_id).exists()
+
     query = (
         select(func.count(Transaction.id))
         .select_from(Transaction)
         .where(
-            func.date(Transaction.created) >= start_date,
-            func.date(Transaction.created) <= end_date,
-            Transaction.status != TransactionStatusEnum.ROLL_BACKED,
+            func.date(Transaction.created).between(start_date, end_date),
+            Transaction.operation_type != TransactionTypeEnum.REVERSAL,
+            ~subquery,
         )
     )
     result = await session.execute(query)
