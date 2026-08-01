@@ -41,7 +41,7 @@ class UserServiceWrite:
             await uow.balances.create_default_balances_for_user(new_user.id)
             return new_user
 
-    async def update_user_status(self, user_id: UUID, new_status: UserStatusEnum) -> User:
+    async def change_user_status(self, user_id: UUID, new_status: UserStatusEnum) -> User:
         async with self.uow as uow:
             user = await uow.users.get_user_by_id(user_id)
 

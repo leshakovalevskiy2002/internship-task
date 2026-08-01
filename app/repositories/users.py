@@ -29,7 +29,7 @@ class UserRepository:
         email: str | None = None,
         user_status: UserStatusEnum | None = None,
     ) -> Sequence[User]:
-        query = select(User).options(selectinload(User.user_balances)).order_by(User.created)
+        query = select(User).options(selectinload(User.user_balances))
 
         if user_id is not None:
             query = query.where(User.id == user_id)
