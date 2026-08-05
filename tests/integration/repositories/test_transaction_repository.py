@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from uuid import uuid4
 
 from sqlalchemy import select
 
@@ -17,14 +18,19 @@ class TestTransactionRepository:
         assert len(transactions) == 2
         assert {t.id for t in transactions} == {transaction1.id, transaction2.id}
 
-    async def test_get_transactions_filters_by_user_id(self, transaction_repository, transaction_factory):
-        transaction1 = await transaction_factory()
-        await transaction_factory()
+    async def test_get_transactions_filters_by_user_id(self, user_factory, transaction_repository, transaction_factory):
+        user1 = await user_factory()
+        user2 = await user_factory()
 
-        transactions = await transaction_repository.get_transactions(user_id=transaction1.user_id)
+        transaction1 = await transaction_factory(user=user1)
+        transaction2 = await transaction_factory(user=user2)
+
+        transactions = await transaction_repository.get_transactions(user_id=user1.id)
 
         assert len(transactions) == 1
         assert transactions[0].id == transaction1.id
+        assert transactions[0].user_id == user1.id
+        assert transactions[0].id != transaction2.id
 
     async def test_get_transactions_ordered_by_created_desc(self, transaction_repository, transaction_factory):
         old_transaction = await transaction_factory(created=datetime(2025, 1, 1))
@@ -62,3 +68,7 @@ class TestTransactionRepository:
         assert db_transaction is not None
         assert db_transaction.user_id == transaction.user_id
         assert db_transaction.amount == transaction.amount
+
+    async def test_get_transaction_by_id_returns_none_when_not_found(self, transaction_repository):
+        transaction = await transaction_repository.get_transaction_by_id(uuid4())
+        assert transaction is None

@@ -16,7 +16,7 @@ class TransactionRepository:
 
     async def get_transactions(self, user_id: UUID | None = None) -> Sequence[Transaction]:
         query = select(Transaction).order_by(Transaction.created.desc())
-        if user_id:
+        if user_id is not None:
             query = query.where(Transaction.user_id == user_id)
 
         db_transactions = await self.session.scalars(query)

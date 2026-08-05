@@ -45,15 +45,21 @@ class TestRegistrationAPI:
 
 
 class TestGetUsersWithBalances:
-    async def test_get_users_returns_all(self, client: AsyncClient):
+    async def test_get_users_returns_all(self, client: AsyncClient, user_factory):
+        user1 = await user_factory(email="first@test.com")
+        user2 = await user_factory(email="second@test.com")
+
         response = await client.get(f"{prefix}")
 
         assert response.status_code == 200
-        assert isinstance(response.json(), list)
+
+        data = response.json()
+        assert len(data) == 2
+        assert {item["id"] for item in data} == {str(user1.id), str(user2.id)}
 
     async def test_get_users_filters_by_id(self, client, user_factory):
         user = await user_factory()
-        response = await client.get(f"{prefix}", params={"id": user.id})
+        response = await client.get(f"{prefix}", params={"user_id": user.id})
 
         assert response.status_code == 200
         data = response.json()
@@ -69,14 +75,28 @@ class TestGetUsersWithBalances:
         assert len(data) == 1
         assert data[0]["email"] == user.email
 
+    async def test_get_users_filters_by_status(self, client, user_factory):
+        active_user = await user_factory(email="active@test.com")
+        await user_factory(email="blocked@test.com", status=UserStatusEnum.BLOCKED)
+
+        response = await client.get(f"{prefix}", params={"user_status": UserStatusEnum.ACTIVE})
+
+        assert response.status_code == 200
+
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == str(active_user.id)
+        assert data[0]["status"] == UserStatusEnum.ACTIVE
+
     async def test_get_users_returns_balances(self, client, user_factory_with_balances):
         user = await user_factory_with_balances()
-        response = await client.get(f"{prefix}", params={"id": user.id})
+        response = await client.get(f"{prefix}", params={"user_id": user.id})
 
         data = response.json()[0]
 
         assert "balances" in data
         assert isinstance(data["balances"], list)
+        assert len(data["balances"]) == len(CurrencyEnum)
 
         balance = data["balances"][0]
 
@@ -85,7 +105,7 @@ class TestGetUsersWithBalances:
 
     async def test_get_users_returns_sorted_balances(self, client, user_factory_with_balances):
         user = await user_factory_with_balances(generate_random_balances=True)
-        response = await client.get(f"{prefix}", params={"id": user.id})
+        response = await client.get(f"{prefix}", params={"user_id": user.id})
 
         balances = response.json()[0]["balances"]
 
