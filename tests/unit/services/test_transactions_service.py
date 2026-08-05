@@ -62,6 +62,8 @@ class TestTransactionServiceWrite:
             users.get_user_by_id.assert_called_once_with(user.id)
             balances.get_user_balance.assert_called_once_with(user_id=user.id, currency=CurrencyEnum.USD)
             transactions.create_transaction.assert_called_once()
+            uow_context.session.flush.assert_awaited_once()
+            uow_context.session.refresh.assert_awaited_once_with(transaction)
 
         async def test_create_transaction_withdraw_success(self, mocker):
             uow = mocker.AsyncMock()
@@ -102,6 +104,8 @@ class TestTransactionServiceWrite:
             users.get_user_by_id.assert_called_once_with(user.id)
             balances.get_user_balance.assert_called_once_with(user_id=user.id, currency=CurrencyEnum.USD)
             transactions.create_transaction.assert_called_once()
+            uow_context.session.flush.assert_awaited_once()
+            uow_context.session.refresh.assert_awaited_once_with(transaction)
 
         async def test_create_transaction_reversal_not_allowed(self, mocker):
             uow = mocker.AsyncMock()
@@ -183,10 +187,12 @@ class TestTransactionServiceWrite:
             uow = mocker.AsyncMock()
             users = mocker.AsyncMock()
             balances = mocker.AsyncMock()
+            transactions = mocker.AsyncMock()
 
             uow_context = uow.__aenter__.return_value
             uow_context.users = users
             uow_context.balances = balances
+            uow_context.transactions = transactions
 
             user = User(email="test@example.com", status=UserStatusEnum.ACTIVE)
             balance = UserBalance(user_id=user.id, currency=CurrencyEnum.USD, amount=Decimal("50.00"))
@@ -203,6 +209,38 @@ class TestTransactionServiceWrite:
                     amount=Decimal("60.00"),
                     operation_type=TransactionTypeEnum.WITHDRAW,
                 )
+            assert balance.amount == Decimal("50.00")
+            transactions.create_transaction.assert_not_called()
+            uow_context.session.flush.assert_not_awaited()
+
+        async def test_create_transaction_withdraw_zero_balance(self, mocker):
+            uow = mocker.AsyncMock()
+            users = mocker.AsyncMock()
+            balances = mocker.AsyncMock()
+            transactions = mocker.AsyncMock()
+
+            uow_context = uow.__aenter__.return_value
+            uow_context.users = users
+            uow_context.balances = balances
+            uow_context.transactions = transactions
+
+            user = User(email="test@example.com", status=UserStatusEnum.ACTIVE)
+            balance = UserBalance(user_id=user.id, currency=CurrencyEnum.USD, amount=Decimal("50.00"))
+
+            users.get_user_by_id.return_value = user
+            balances.get_user_balance.return_value = balance
+
+            service = TransactionServiceWrite(uow)
+            await service.create_transaction(
+                user_id=user.id,
+                currency=CurrencyEnum.USD,
+                amount=Decimal("50.00"),
+                operation_type=TransactionTypeEnum.WITHDRAW,
+            )
+
+            assert balance.amount == Decimal("0.00")
+            transactions.create_transaction.assert_called_once()
+            uow_context.session.flush.assert_called_once()
 
     class TestRollbackTransaction:
         async def test_rollback_deposit_success(self, mocker):
@@ -500,3 +538,46 @@ class TestTransactionServiceWrite:
 
             with pytest.raises(NegativeBalanceError):
                 await service.rollback_transaction(transaction.id, user.id)
+
+            assert balance.amount == Decimal("50")
+            transactions.create_transaction.assert_not_called()
+            uow_context.session.flush.assert_not_awaited()
+
+        async def test_rollback_deposit_zero_balance(self, mocker):
+            uow = mocker.AsyncMock()
+            users = mocker.AsyncMock()
+            balances = mocker.AsyncMock()
+            transactions = mocker.AsyncMock()
+
+            uow_context = uow.__aenter__.return_value
+            uow_context.users = users
+            uow_context.transactions = transactions
+            uow_context.balances = balances
+
+            user = User(email="test@test.com", status=UserStatusEnum.ACTIVE)
+            transaction = Transaction(
+                user_id=user.id,
+                currency=CurrencyEnum.USD,
+                amount=Decimal("50.00"),
+                operation_type=TransactionTypeEnum.DEPOSIT,
+            )
+            reversal_transaction = Transaction(
+                user_id=user.id,
+                currency=CurrencyEnum.USD,
+                amount=Decimal("50.00"),
+                operation_type=TransactionTypeEnum.REVERSAL,
+            )
+            balance = UserBalance(user_id=user.id, currency=CurrencyEnum.USD, amount=Decimal("50.00"))
+
+            users.get_user_by_id.return_value = user
+            transactions.get_transaction_by_id.return_value = transaction
+            transactions.create_transaction.return_value = reversal_transaction
+            balances.get_user_balance.return_value = balance
+
+            service = TransactionServiceWrite(uow)
+            result = await service.rollback_transaction(transaction.id, user.id)
+
+            assert balance.amount == Decimal("0.00")
+            assert result == reversal_transaction
+            uow_context.session.flush.assert_awaited_once()
+            uow_context.session.refresh.assert_awaited_once_with(reversal_transaction)

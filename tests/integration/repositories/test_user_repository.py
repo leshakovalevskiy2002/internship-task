@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from sqlalchemy import select
 
 from app.core.enums import CurrencyEnum, UserStatusEnum
@@ -13,12 +15,20 @@ class TestUserRepository:
         assert find_user is not None
         assert find_user.email == user.email
 
+    async def test_get_user_by_email_returns_none_when_not_found(self, user_repository: UserRepository):
+        find_user = await user_repository.get_user_by_email("not-found@test.com")
+        assert find_user is None
+
     async def test_get_user_by_id(self, user_repository: UserRepository, user_factory):
         user = await user_factory()
 
         find_user = await user_repository.get_user_by_id(user.id)
         assert find_user is not None
         assert find_user.id == user.id
+
+    async def test_get_user_by_id_returns_none_when_not_found(self, user_repository: UserRepository):
+        find_user = await user_repository.get_user_by_id(uuid4())
+        assert find_user is None
 
     async def test_get_users_with_balances_returns_all_users(self, user_repository, user_factory):
         user1 = await user_factory(email="first@test.com")
@@ -58,7 +68,7 @@ class TestUserRepository:
         assert users[0].status == UserStatusEnum.BLOCKED
 
     async def test_get_users_with_balances_filters_by_email_and_status(self, user_repository, user_factory):
-        await user_factory(email="test@test.com")
+        user = await user_factory(email="test@test.com")
         await user_factory(email="test2@test.com", status=UserStatusEnum.BLOCKED)
         await user_factory(email="test3@test.com")
 
@@ -68,6 +78,8 @@ class TestUserRepository:
         )
 
         assert len(users) == 1
+        assert users[0].id == user.id
+        assert users[0].email == "test@test.com"
         assert users[0].status == UserStatusEnum.ACTIVE
 
     async def test_get_users_with_balances_loads_balances(self, user_repository, user_factory_with_balances):

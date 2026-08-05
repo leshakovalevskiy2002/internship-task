@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 
 from app.core.enums import UserStatusEnum
@@ -59,7 +61,7 @@ class TestUserServiceWrite:
             users.add_user.assert_not_called()
             uow_context.balances.create_default_balances_for_user.assert_not_called()
 
-        async def test_create_user_rollbacks_when_balance_creation_failed(self, mocker):
+        async def test_create_user_propagates_balance_creation_error(self, mocker):
             uow = mocker.AsyncMock()
             users = mocker.AsyncMock()
             balances = mocker.AsyncMock()
@@ -84,7 +86,7 @@ class TestUserServiceWrite:
             balances.create_default_balances_for_user.assert_called_once_with(user.id)
 
     class TestChangeUserStatus:
-        async def test_change_user_status_success(self, mocker):
+        async def test_change_user_status_success_active_to_blocked(self, mocker):
             uow = mocker.AsyncMock()
             users = mocker.AsyncMock()
             session = mocker.AsyncMock()
@@ -104,6 +106,26 @@ class TestUserServiceWrite:
             session.flush.assert_awaited_once()
             session.refresh.assert_awaited_once_with(user)
 
+        async def test_change_user_status_success_blocked_to_active(self, mocker):
+            uow = mocker.AsyncMock()
+            users = mocker.AsyncMock()
+            session = mocker.AsyncMock()
+
+            uow_contex = uow.__aenter__.return_value
+            uow_contex.users = users
+            uow_contex.session = session
+
+            user = User(email="test@example.com", status=UserStatusEnum.BLOCKED)
+            users.get_user_by_id.return_value = user
+
+            service = UserServiceWrite(uow)
+            result = await service.change_user_status(user.id, UserStatusEnum.ACTIVE)
+
+            assert result.status == UserStatusEnum.ACTIVE
+            users.get_user_by_id.assert_called_once_with(user.id)
+            session.flush.assert_awaited_once()
+            session.refresh.assert_awaited_once_with(user)
+
         async def test_change_user_status_user_not_found(self, mocker):
             uow = mocker.AsyncMock()
             users = mocker.AsyncMock()
@@ -118,7 +140,7 @@ class TestUserServiceWrite:
             service = UserServiceWrite(uow)
 
             with pytest.raises(UserNotFoundError):
-                await service.change_user_status(user_id=mocker.MagicMock(), new_status=UserStatusEnum.BLOCKED)
+                await service.change_user_status(user_id=uuid4(), new_status=UserStatusEnum.BLOCKED)
 
             users.get_user_by_id.assert_called_once()
             session.flush.assert_not_called()
@@ -144,6 +166,7 @@ class TestUserServiceWrite:
             users.get_user_by_id.assert_called_once_with(user.id)
             session.flush.assert_not_called()
             session.refresh.assert_not_called()
+            assert user.status == UserStatusEnum.ACTIVE
 
         async def test_change_user_status_user_already_blocked(self, mocker):
             uow = mocker.AsyncMock()
@@ -165,3 +188,4 @@ class TestUserServiceWrite:
             users.get_user_by_id.assert_called_once_with(user.id)
             session.flush.assert_not_called()
             session.refresh.assert_not_called()
+            assert user.status == UserStatusEnum.BLOCKED
