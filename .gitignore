@@ -1,4 +1,5 @@
 .env*
 logs/*
 !logs/.gitkeep
-!.env.example
+!.env.dev.example
+!.env.prod.example

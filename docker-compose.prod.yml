@@ -6,11 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    command: >
-      gunicorn app.config.app:app
-      --workers 4
-      --worker-class uvicorn.workers.UvicornWorker
-      --bind 0.0.0.0:7999
     restart: unless-stopped
     env_file:
       - .env.prod
@@ -24,7 +19,7 @@ services:
       - postgres-data-prod:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB" ]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
       interval: 5s
       timeout: 5s
       retries: 5
