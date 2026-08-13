@@ -1,0 +1,67 @@
+name: Docker CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      # Create .env.dev and .env.prod
+      - name: Create .env.dev from example
+        run: cp .env.dev.example .env.dev
+
+      - name: Create .env.prod from example
+        run: |
+          cp .env.prod.example .env.prod
+          sed -i "s/POSTGRES_PASSWORD_PLACEHOLDER/${{ secrets.POSTGRES_PASSWORD }}/g" .env.prod
+
+      # Validate and build dev and prod compose-files
+      - name: Validate dev Compose
+        run: docker compose --env-file .env.dev --file docker-compose.yml config
+
+      - name: Validate prod Compose
+        run: docker compose --env-file .env.prod --file docker-compose.prod.yml config
+
+      - name: Build dev image
+        run: docker compose --env-file .env.dev --file docker-compose.yml build
+
+      - name: Build prod image
+        run: docker compose --env-file .env.prod --file docker-compose.prod.yml config
+
+      # Smoke test dev
+      - name: Start dev stack
+        run: docker compose --env-file .env.dev --file docker-compose.yml up -d --wait
+
+      - name: Dev smoke test
+        run: curl --fail --silent http://localhost:8000/
+
+      - name: Dev logs
+        if: failure()
+        run: docker compose --env-file .env.dev --file docker-compose.yml logs
+
+      - name: Stop dev stack
+        if: always()
+        run: docker compose --env-file .env.dev --file docker-compose.yml down -v
+
+      # Smoke test prod
+      - name: Start prod stack
+        run: docker compose --env-file .env.prod --file docker-compose.prod.yml up -d --wait
+
+      - name: Prod smoke test
+        run: curl --fail --silent http://localhost/
+
+      - name: Prod logs
+        if: failure()
+        run: docker compose --env-file .env.prod --file docker-compose.prod.yml logs
+
+      - name: Stop prod stack
+        if: always()
+        run: docker compose --env-file .env.prod --file docker-compose.prod.yml down -v

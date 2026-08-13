@@ -3,10 +3,7 @@ from collections.abc import AsyncGenerator
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-from app.models.base import Base
 
 
 class DatabaseSettings(BaseSettings):

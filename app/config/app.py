@@ -34,3 +34,8 @@ setup_middlewares(app)
 setup_exception_handlers(app)
 
 app.include_router(router)
+
+
+@app.get("/")
+async def home():
+    return {"message": "Transactions Service"}
