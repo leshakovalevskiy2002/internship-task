@@ -34,7 +34,7 @@ jobs:
         run: docker compose --env-file .env.dev --file docker-compose.yml build
 
       - name: Build prod image
-        run: docker compose --env-file .env.prod --file docker-compose.prod.yml config
+        run: docker compose --env-file .env.prod --file docker-compose.prod.yml build
 
       # Smoke test dev
       - name: Start dev stack
