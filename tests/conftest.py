@@ -5,11 +5,15 @@ import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from testcontainers.community.redis import RedisContainer
 
 from app.config.app import app
-from app.config.settings import Base, get_async_session, settings
-from app.dependencies import get_session_maker
+from app.config.redis import create_redis
+from app.config.settings import get_database_settings
+from app.dependencies import get_async_session, get_session_maker
+from app.models.base import Base
 from app.repositories.balances import BalanceRepository
+from app.repositories.reports import ReportRepository
 from app.repositories.transactions import TransactionRepository
 from app.repositories.users import UserRepository
 from app.uow import UnitOfWork
@@ -28,9 +32,16 @@ def event_loop():
     loop.close()
 
 
+@pytest.fixture(scope="session")
+def db_settings():
+    return get_database_settings()
+
+
 @pytest_asyncio.fixture(scope="session")
-async def engine():
-    test_engine = create_async_engine(settings.url(), echo=False)
+async def engine(db_settings):
+    test_engine = create_async_engine(
+        db_settings.url, echo=False, connect_args={"server_settings": {"timezone": "UTC"}}
+    )
 
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -92,6 +103,45 @@ async def client(app_test: FastAPI):
         yield client
 
 
+@pytest.fixture(scope="session")
+def redis_container():
+    with RedisContainer("redis:8") as container:
+        host = container.get_container_host_ip()
+        port = container.get_exposed_port(6379)
+
+        yield host, port
+
+
+@pytest_asyncio.fixture
+async def redis(redis_container, monkeypatch):
+    host, port = redis_container
+
+    monkeypatch.setenv("REDIS_HOST", host)
+    monkeypatch.setenv("REDIS_PORT", str(port))
+
+    client = create_redis()
+    await client.flushdb()
+
+    yield client
+
+    await client.flushdb()
+    await client.aclose()
+
+
+@pytest_asyncio.fixture
+async def app_with_redis(app_test, redis):
+    app_test.state.redis = redis
+    return app_test
+
+
+@pytest_asyncio.fixture
+async def client_with_redis(app_with_redis):
+    transport = ASGITransport(app=app_with_redis)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+
 @pytest.fixture
 def user_repository(session: AsyncSession):
     return UserRepository(session=session)
@@ -105,3 +155,8 @@ def balance_repository(session: AsyncSession):
 @pytest.fixture
 def transaction_repository(session: AsyncSession):
     return TransactionRepository(session=session)
+
+
+@pytest.fixture
+def report_repository(session: AsyncSession):
+    return ReportRepository(session=session)

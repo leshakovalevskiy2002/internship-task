@@ -1,5 +1,6 @@
 import random
 import uuid
+from datetime import datetime
 from decimal import Decimal
 
 import pytest_asyncio
@@ -14,11 +15,15 @@ async def user_factory(session):
     async def factory(
         email: str | None = None,
         status: UserStatusEnum = UserStatusEnum.ACTIVE,
+        created: datetime | None = None,
     ):
         if email is None:
             email = f"test_{uuid.uuid4()}@example.com"
 
         user = User(email=email, status=status)
+
+        if created is not None:
+            user.created = created
 
         session.add(user)
         await session.flush()

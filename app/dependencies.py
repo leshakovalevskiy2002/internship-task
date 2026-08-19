@@ -1,18 +1,36 @@
-from typing import Annotated
+from typing import Annotated, AsyncGenerator
 
-from fastapi import Depends
+from fastapi import Depends, Request
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.config.settings import async_session_maker, get_async_session
+from app.config.database import async_session_maker
 from app.repositories.transactions import TransactionRepository
 from app.repositories.users import UserRepository
+from app.services.report_query_service import ReportService
 from app.services.transactions_service import TransactionServiceRead, TransactionServiceWrite
 from app.services.users_service import UserServiceRead, UserServiceWrite
 from app.uow import UnitOfWork
 
 
+class AppState:
+    redis: Redis
+
+
+def get_redis(request: Request) -> Redis:
+    state: AppState = request.app.state
+    return state.redis
+
+
 def get_session_maker() -> async_sessionmaker[AsyncSession]:
     return async_session_maker
+
+
+async def get_async_session(
+    session_maker: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_maker)]
+) -> AsyncGenerator[AsyncSession, None]:
+    async with session_maker() as session:
+        yield session
 
 
 def get_uow(session_maker: Annotated[async_sessionmaker[AsyncSession], Depends(get_session_maker)]) -> UnitOfWork:
@@ -43,3 +61,7 @@ def get_transaction_service_read(
 
 def get_transaction_service_write(uow: Annotated[UnitOfWork, Depends(get_uow)]) -> TransactionServiceWrite:
     return TransactionServiceWrite(uow=uow)
+
+
+def get_report_query_service(redis: Annotated[Redis, Depends(get_redis)]) -> ReportService:
+    return ReportService(redis=redis)
