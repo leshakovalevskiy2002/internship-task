@@ -3,10 +3,7 @@ from collections.abc import AsyncGenerator
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-from app.models.base import Base
 
 
 class DatabaseSettings(BaseSettings):
@@ -50,9 +47,3 @@ async_session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expir
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
-
-
-async def create_db_and_tables():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(text("SET TIME ZONE 'UTC'"))

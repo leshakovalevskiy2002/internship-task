@@ -8,7 +8,6 @@ from app.api import router
 from app.config.exceptions import setup_exception_handlers
 from app.config.logging import setup_logging
 from app.config.middlewares import setup_middlewares
-from app.config.settings import create_db_and_tables
 
 setup_logging()
 
@@ -18,10 +17,9 @@ async def lifespan(app: FastAPI):
     log_id = str(uuid4())
 
     with logger.contextualize(log_id=log_id):
-        logger.info("The application is starting. Create database tables if not exist")
+        logger.info("The application is starting.")
 
         try:
-            await create_db_and_tables()
             yield
         except Exception:
             logger.exception("Application startup failed")
@@ -36,3 +34,8 @@ setup_middlewares(app)
 setup_exception_handlers(app)
 
 app.include_router(router)
+
+
+@app.get("/")
+async def home():
+    return {"message": "Transactions Service"}

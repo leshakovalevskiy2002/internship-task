@@ -1,4 +1,4 @@
-from pathlib import Path
+import sys
 
 from loguru import logger
 
@@ -6,21 +6,18 @@ from loguru import logger
 def setup_logging() -> None:
     logger.remove()
 
-    Path("logs").mkdir(exist_ok=True)
-
     logger.add(
-        "logs/info.log",
+        sys.stdout,
         format="Log: [{extra[log_id]}:{time} - {level} - {message}]",
         level="INFO",
+        filter=lambda record: record["level"].no < 40,
         enqueue=True,
-        rotation="10 MB",
-        retention="7 days",
     )
+
     logger.add(
-        "logs/errors.log",
+        sys.stderr,
+        format="Log: [{extra[log_id]}:{time} - {level} - {message}]",
         level="ERROR",
-        rotation="10 MB",
-        retention="30 days",
         enqueue=True,
         backtrace=True,
         diagnose=False,
