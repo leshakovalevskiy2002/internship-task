@@ -26,7 +26,7 @@ class TransactionRepository:
         self.session.add(new_transaction)
         return new_transaction
 
-    async def get_transaction_by_id(self, transaction_id: UUID) -> Transaction | None:
-        query = select(Transaction).where(Transaction.id == transaction_id)
+    async def get_transaction_by_id_for_update(self, transaction_id: UUID) -> Transaction | None:
+        query = select(Transaction).where(Transaction.id == transaction_id).with_for_update()
         result = await self.session.scalars(query)
         return result.one_or_none()

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.settings import get_async_session
-from app.dependencies import get_transaction_service_read, get_transaction_service_write
+from app.dependencies import get_transaction_repo, get_transaction_service
 from app.repositories.queries import (
     get_not_roll_backed_deposit_amount,
     get_not_roll_backed_transactions_count,
@@ -17,23 +17,24 @@ from app.repositories.queries import (
     get_registered_users_count,
     get_transactions_count,
 )
+from app.repositories.transactions import TransactionRepository
 from app.schemas.transactions import RequestTransactionModel, TransactionModel
-from app.services.transactions_service import TransactionServiceRead, TransactionServiceWrite
+from app.services.transactions_service import TransactionService
 
 router = APIRouter(tags=["transactions"])
 
 
 @router.get("/transactions", response_model=list[TransactionModel], status_code=status.HTTP_200_OK)
 async def get_transactions(
-    transaction_service: Annotated[TransactionServiceRead, Depends(get_transaction_service_read)],
+    transaction_repo: Annotated[TransactionRepository, Depends(get_transaction_repo)],
     user_id: UUID | None = None,
 ):
-    return await transaction_service.get_all_transactions(user_id=user_id)
+    return await transaction_repo.get_all_transactions(user_id=user_id)
 
 
 @router.post("/{user_id}/transactions", response_model=TransactionModel, status_code=status.HTTP_201_CREATED)
 async def create_transaction(
-    transaction_service: Annotated[TransactionServiceWrite, Depends(get_transaction_service_write)],
+    transaction_service: Annotated[TransactionService, Depends(get_transaction_service)],
     user_id: UUID,
     transaction: RequestTransactionModel,
 ):
@@ -46,7 +47,7 @@ async def create_transaction(
 
 @router.patch("/{user_id}/transactions/{transaction_id}", response_model=TransactionModel)
 async def rollback_transaction(
-    transaction_service: Annotated[TransactionServiceWrite, Depends(get_transaction_service_write)],
+    transaction_service: Annotated[TransactionService, Depends(get_transaction_service)],
     user_id: UUID,
     transaction_id: UUID,
 ):

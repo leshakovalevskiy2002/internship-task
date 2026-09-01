@@ -1,10 +1,8 @@
 from decimal import Decimal
-from typing import Sequence
 from uuid import UUID
 
 from app.core.enums import CurrencyEnum, TransactionStatusEnum, UserStatusEnum
 from app.models.transaction import Transaction
-from app.repositories.transactions import TransactionRepository
 from app.services.service_errors.transaction_errors import (
     NegativeBalanceError,
     TransactionAlreadyRollbackedException,
@@ -18,15 +16,7 @@ from app.services.service_errors.transaction_errors import (
 from app.uow import UnitOfWork
 
 
-class TransactionServiceRead:
-    def __init__(self, transaction_repo: TransactionRepository) -> None:
-        self.transaction_repo = transaction_repo
-
-    async def get_all_transactions(self, user_id: UUID | None = None) -> Sequence[Transaction]:
-        return await self.transaction_repo.get_all_transactions(user_id=user_id)
-
-
-class TransactionServiceWrite:
+class TransactionService:
     def __init__(self, uow: UnitOfWork) -> None:
         self.uow = uow
 
@@ -40,7 +30,7 @@ class TransactionServiceWrite:
             if user.status != UserStatusEnum.ACTIVE:
                 raise TransactionUserBlockedError(user_id)
 
-            user_balance = await uow.balances.get_user_balance(user_id=user_id, currency=currency)
+            user_balance = await uow.balances.get_user_balance_for_update(user_id=user_id, currency=currency)
 
             if user_balance is None:
                 raise UserBalanceNotFoundError(user_id=user_id, currency=currency.value)
@@ -70,7 +60,7 @@ class TransactionServiceWrite:
             if user is None:
                 raise TransactionUserNotFoundError(user_id)
 
-            transaction = await uow.transactions.get_transaction_by_id(transaction_id)
+            transaction = await uow.transactions.get_transaction_by_id_for_update(transaction_id)
 
             if transaction is None:
                 raise TransactionNotExistsError(transaction_id)
@@ -84,7 +74,9 @@ class TransactionServiceWrite:
             if user.status == UserStatusEnum.BLOCKED:
                 raise TransactionBlockedUserException(user_id=user_id)
 
-            user_balance = await uow.balances.get_user_balance(user_id=user_id, currency=transaction.currency)
+            user_balance = await uow.balances.get_user_balance_for_update(
+                user_id=user_id, currency=transaction.currency
+            )
 
             if user_balance is None:
                 raise UserBalanceNotFoundError(user_id=user_id, currency=transaction.currency.value)

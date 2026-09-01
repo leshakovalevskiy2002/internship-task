@@ -1,9 +1,9 @@
-from typing import Sequence
 from uuid import UUID
+
+from sqlalchemy.exc import IntegrityError
 
 from app.core.enums import UserStatusEnum
 from app.models.user import User
-from app.repositories.users import UserRepository
 from app.services.service_errors.user_errors import (
     UserAlreadyActiveError,
     UserAlreadyBlockedError,
@@ -13,33 +13,24 @@ from app.services.service_errors.user_errors import (
 from app.uow import UnitOfWork
 
 
-class UserServiceRead:
-    def __init__(self, user_repo: UserRepository) -> None:
-        self.user_repo = user_repo
-
-    async def get_users_with_balances(
-        self,
-        user_id: UUID | None = None,
-        email: str | None = None,
-        user_status: UserStatusEnum | None = None,
-    ) -> Sequence[User]:
-        return await self.user_repo.get_users_with_balances(user_id, email, user_status)
-
-
-class UserServiceWrite:
+class UserService:
     def __init__(self, uow: UnitOfWork) -> None:
         self.uow = uow
 
     async def create_user_and_balances(self, email: str) -> User:
-        async with self.uow as uow:
-            existing_user = await uow.users.get_user_by_email(email)
+        try:
+            async with self.uow as uow:
+                existing_user = await uow.users.get_user_by_email(email)
 
-            if existing_user:
-                raise UserAlreadyExistsError(email)
+                if existing_user:
+                    raise UserAlreadyExistsError(email)
 
-            new_user = await uow.users.add_user(email)
-            await uow.balances.create_default_balances_for_user(new_user.id)
-            return new_user
+                new_user = await uow.users.add_user(email)
+                await uow.balances.create_default_balances_for_user(new_user.id)
+                return new_user
+
+        except IntegrityError as exc:
+            raise UserAlreadyExistsError(email) from exc
 
     async def update_user_status(self, user_id: UUID, new_status: UserStatusEnum) -> User:
         async with self.uow as uow:

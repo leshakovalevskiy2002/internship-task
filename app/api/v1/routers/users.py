@@ -4,7 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.enums import UserStatusEnum
-from app.dependencies import get_user_service_read, get_user_service_write
+from app.dependencies import get_user_repo, get_user_service
+from app.repositories.users import UserRepository
 from app.schemas.users import (
     RequestUserModel,
     RequestUserUpdateModel,
@@ -12,19 +13,19 @@ from app.schemas.users import (
     ResponseUserModel,
     UserModel,
 )
-from app.services.users_service import UserServiceRead, UserServiceWrite
+from app.services.users_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("", response_model=list[ResponseUserModel], status_code=status.HTTP_200_OK)
 async def get_all_users_and_their_balances(
-    user_service: Annotated[UserServiceRead, Depends(get_user_service_read)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repo)],
     user_id: Annotated[UUID | None, Query(description="Filter by user_id")] = None,
     email: Annotated[str | None, Query(description="Filter by email")] = None,
     user_status: Annotated[UserStatusEnum | None, Query(description="Filter by user status")] = None,
 ) -> list[ResponseUserModel]:
-    users = await user_service.get_users_with_balances(user_id=user_id, email=email, user_status=user_status)
+    users = await user_repo.get_users_with_balances(user_id=user_id, email=email, user_status=user_status)
     return [
         ResponseUserModel(
             id=user.id,
@@ -42,14 +43,14 @@ async def get_all_users_and_their_balances(
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=UserModel)
 async def create_user_and_his_balances(
-    new_user_data: RequestUserModel, user_service: Annotated[UserServiceWrite, Depends(get_user_service_write)]
+    new_user_data: RequestUserModel, user_service: Annotated[UserService, Depends(get_user_service)]
 ):
     return await user_service.create_user_and_balances(new_user_data.email)
 
 
 @router.patch("/{user_id}", response_model=UserModel)
 async def update_user_status(
-    user_service: Annotated[UserServiceWrite, Depends(get_user_service_write)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
     user_id: UUID,
     user: RequestUserUpdateModel,
 ):
