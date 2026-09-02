@@ -30,6 +30,11 @@ class TransactionRepository:
         return new_transaction
 
     async def get_transaction_by_id_for_update(self, transaction_id: UUID) -> Transaction | None:
-        query = select(Transaction).options(selectinload(Transaction.reversal)).where(Transaction.id == transaction_id).with_for_update()
+        query = (
+            select(Transaction)
+            .options(selectinload(Transaction.reversal))
+            .where(Transaction.id == transaction_id)
+            .with_for_update()
+        )
         result = await self.session.scalars(query)
         return result.one_or_none()

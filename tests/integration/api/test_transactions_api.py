@@ -89,8 +89,8 @@ class TestCreateTransactionAPI:
             json={"currency": CurrencyEnum.USD, "amount": "100.00", "operation_type": TransactionTypeEnum.REVERSAL},
         )
 
-        assert response.status_code == 400
-        assert response.json()["detail"] == "Incorrect transaction type"
+        assert response.status_code == 422
+        assert "detail" in response.json()
 
     async def test_create_transaction_user_not_found(self, client):
         uuid = str(uuid4())

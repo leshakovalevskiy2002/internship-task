@@ -27,7 +27,7 @@ class TestBalanceRepository:
     async def test_get_user_balance_returns_balance(self, balance_repository, user_balance_factory):
         balance = await user_balance_factory()
 
-        result = await balance_repository.get_user_balance(balance.user_id, CurrencyEnum.USD)
+        result = await balance_repository.get_user_balance_for_update(balance.user_id, CurrencyEnum.USD)
 
         assert result is not None
         assert result.id == balance.id
@@ -35,14 +35,14 @@ class TestBalanceRepository:
         assert result.currency == CurrencyEnum.USD
 
     async def test_get_user_balance_returns_none_if_not_exists(self, balance_repository):
-        result = await balance_repository.get_user_balance(uuid4(), CurrencyEnum.USD)
+        result = await balance_repository.get_user_balance_for_update(uuid4(), CurrencyEnum.USD)
         assert result is None
 
     async def test_get_user_balance_filters_by_user(self, balance_repository, user_balance_factory):
         balance1 = await user_balance_factory(currency=CurrencyEnum.USD)
         balance2 = await user_balance_factory(currency=CurrencyEnum.USD)
 
-        result = await balance_repository.get_user_balance(balance1.user_id, CurrencyEnum.USD)
+        result = await balance_repository.get_user_balance_for_update(balance1.user_id, CurrencyEnum.USD)
 
         assert result is not None
         assert result.id == balance1.id
@@ -55,7 +55,7 @@ class TestBalanceRepository:
         usd_balance = await user_balance_factory(user=user, currency=CurrencyEnum.USD)
         eur_balance = await user_balance_factory(user=user, currency=CurrencyEnum.EUR)
 
-        result = await balance_repository.get_user_balance(usd_balance.user_id, CurrencyEnum.EUR)
+        result = await balance_repository.get_user_balance_for_update(usd_balance.user_id, CurrencyEnum.EUR)
 
         assert result is not None
         assert result.id == eur_balance.id

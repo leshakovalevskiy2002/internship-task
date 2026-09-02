@@ -90,7 +90,9 @@ class TransactionService:
             if user.status == UserStatusEnum.BLOCKED:
                 raise TransactionBlockedUserException(user_id=user_id)
 
-            user_balance = await uow.balances.get_user_balance_for_update(user_id=user_id, currency=transaction.currency)
+            user_balance = await uow.balances.get_user_balance_for_update(
+                user_id=user_id, currency=transaction.currency
+            )
 
             if user_balance is None:
                 raise UserBalanceNotFoundError(user_id=user_id, currency=transaction.currency.value)

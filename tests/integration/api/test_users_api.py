@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from decimal import Decimal
 
 from fastapi import status
@@ -15,7 +16,7 @@ prefix = "/api/v1/users"
 
 class TestRegistrationAPI:
     async def test_registration_success(self, client: AsyncClient, session: AsyncSession):
-        response = await client.post(f"{prefix}/registration", json={"email": "test@example.com"})
+        response = await client.post(prefix, json={"email": "test@example.com"})
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
@@ -33,33 +34,33 @@ class TestRegistrationAPI:
         assert len(user.user_balances) == len(CurrencyEnum)
 
     async def test_registration_duplicate_email(self, client: AsyncClient):
-        r1 = await client.post(f"{prefix}/registration", json={"email": "test@example.com"})
+        r1 = await client.post(prefix, json={"email": "test@example.com"})
         assert r1.status_code == status.HTTP_201_CREATED
 
-        r2 = await client.post(f"{prefix}/registration", json={"email": "test@example.com"})
+        r2 = await client.post(prefix, json={"email": "test@example.com"})
         assert r2.status_code == status.HTTP_409_CONFLICT
 
     async def test_registration_invalid_email(self, client: AsyncClient):
-        r1 = await client.post(f"{prefix}/registration", json={"email": "wrong"})
+        r1 = await client.post(prefix, json={"email": "wrong"})
         assert r1.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 class TestGetUsersWithBalances:
     async def test_get_users_returns_all(self, client: AsyncClient, user_factory):
-        user1 = await user_factory(email="first@test.com")
-        user2 = await user_factory(email="second@test.com")
+        user1 = await user_factory(email="first@test.com", created=datetime(2026, 1, 1))
+        user2 = await user_factory(email="second@test.com", created=datetime(2025, 1, 1))
 
-        response = await client.get(f"{prefix}")
+        response = await client.get(prefix)
 
         assert response.status_code == 200
 
         data = response.json()
         assert len(data) == 2
-        assert {item["id"] for item in data} == {str(user1.id), str(user2.id)}
+        assert [item["id"] for item in data] == [str(user2.id), str(user1.id)]
 
     async def test_get_users_filters_by_id(self, client, user_factory):
         user = await user_factory()
-        response = await client.get(f"{prefix}", params={"user_id": user.id})
+        response = await client.get(prefix, params={"user_id": user.id})
 
         assert response.status_code == 200
         data = response.json()
@@ -68,7 +69,7 @@ class TestGetUsersWithBalances:
 
     async def test_get_users_filters_by_email(self, client, user_factory):
         user = await user_factory()
-        response = await client.get(f"{prefix}", params={"email": user.email})
+        response = await client.get(prefix, params={"email": user.email})
 
         assert response.status_code == 200
         data = response.json()
@@ -79,7 +80,7 @@ class TestGetUsersWithBalances:
         active_user = await user_factory(email="active@test.com")
         await user_factory(email="blocked@test.com", status=UserStatusEnum.BLOCKED)
 
-        response = await client.get(f"{prefix}", params={"user_status": UserStatusEnum.ACTIVE})
+        response = await client.get(prefix, params={"user_status": UserStatusEnum.ACTIVE})
 
         assert response.status_code == 200
 
@@ -90,7 +91,7 @@ class TestGetUsersWithBalances:
 
     async def test_get_users_returns_balances(self, client, user_factory_with_balances):
         user = await user_factory_with_balances()
-        response = await client.get(f"{prefix}", params={"user_id": user.id})
+        response = await client.get(prefix, params={"user_id": user.id})
 
         data = response.json()[0]
 
@@ -105,7 +106,7 @@ class TestGetUsersWithBalances:
 
     async def test_get_users_returns_sorted_balances(self, client, user_factory_with_balances):
         user = await user_factory_with_balances(generate_random_balances=True)
-        response = await client.get(f"{prefix}", params={"user_id": user.id})
+        response = await client.get(prefix, params={"user_id": user.id})
 
         balances = response.json()[0]["balances"]
 

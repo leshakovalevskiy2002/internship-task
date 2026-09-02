@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -11,7 +11,7 @@ from app.core.enums import CurrencyEnum, TransactionStatusEnum, TransactionTypeE
 class CreateTransactionModel(BaseModel):
     currency: CurrencyEnum
     amount: Annotated[Decimal, Field(max_digits=15, decimal_places=2, examples=[Decimal("12345.67")])]
-    operation_type: TransactionTypeEnum
+    operation_type: Literal[TransactionTypeEnum.DEPOSIT, TransactionTypeEnum.WITHDRAW]
 
     @field_validator("amount", mode="after")
     @classmethod
@@ -27,6 +27,7 @@ class TransactionModelResponse(BaseModel):
     currency: CurrencyEnum
     operation_type: TransactionTypeEnum
     amount: Decimal
+    reversal_of_id: UUID | None
     status: TransactionStatusEnum
     created: datetime
     updated: datetime

@@ -10,10 +10,10 @@ from app.services.service_errors.user_errors import (
     UserAlreadyExistsError,
     UserNotFoundError,
 )
-from app.services.users_service import UserServiceWrite
+from app.services.users_service import UserService
 
 
-class TestUserServiceWrite:
+class TestUserService:
     class TestCreateUserAndBalances:
         async def test_create_user_and_balances_success(self, mocker):
             uow = mocker.AsyncMock()
@@ -30,7 +30,7 @@ class TestUserServiceWrite:
             user = User(email=email)
             users.add_user.return_value = user
 
-            service = UserServiceWrite(uow)
+            service = UserService(uow)
 
             result = await service.create_user_and_balances(email)
 
@@ -52,7 +52,7 @@ class TestUserServiceWrite:
 
             users.get_user_by_email.return_value = existing_user
 
-            service = UserServiceWrite(uow)
+            service = UserService(uow)
 
             with pytest.raises(UserAlreadyExistsError):
                 await service.create_user_and_balances(email)
@@ -77,7 +77,7 @@ class TestUserServiceWrite:
             users.add_user.return_value = user
             balances.create_default_balances_for_user.side_effect = Exception("Balance creation failed")
 
-            service = UserServiceWrite(uow)
+            service = UserService(uow)
 
             with pytest.raises(Exception, match="Balance creation failed"):
                 await service.create_user_and_balances(email)
@@ -98,7 +98,7 @@ class TestUserServiceWrite:
             user = User(email="test@example.com", status=UserStatusEnum.ACTIVE)
             users.get_user_by_id.return_value = user
 
-            service = UserServiceWrite(uow)
+            service = UserService(uow)
             result = await service.change_user_status(user.id, UserStatusEnum.BLOCKED)
 
             assert result.status == UserStatusEnum.BLOCKED
@@ -118,7 +118,7 @@ class TestUserServiceWrite:
             user = User(email="test@example.com", status=UserStatusEnum.BLOCKED)
             users.get_user_by_id.return_value = user
 
-            service = UserServiceWrite(uow)
+            service = UserService(uow)
             result = await service.change_user_status(user.id, UserStatusEnum.ACTIVE)
 
             assert result.status == UserStatusEnum.ACTIVE
@@ -137,7 +137,7 @@ class TestUserServiceWrite:
 
             users.get_user_by_id.return_value = None
 
-            service = UserServiceWrite(uow)
+            service = UserService(uow)
 
             with pytest.raises(UserNotFoundError):
                 await service.change_user_status(user_id=uuid4(), new_status=UserStatusEnum.BLOCKED)
@@ -158,7 +158,7 @@ class TestUserServiceWrite:
             user = User(email="test@example.com", status=UserStatusEnum.ACTIVE)
             users.get_user_by_id.return_value = user
 
-            service = UserServiceWrite(uow)
+            service = UserService(uow)
 
             with pytest.raises(UserAlreadyActiveError):
                 await service.change_user_status(user.id, UserStatusEnum.ACTIVE)
@@ -180,7 +180,7 @@ class TestUserServiceWrite:
             user = User(email="test@example.com", status=UserStatusEnum.BLOCKED)
             users.get_user_by_id.return_value = user
 
-            service = UserServiceWrite(uow)
+            service = UserService(uow)
 
             with pytest.raises(UserAlreadyBlockedError):
                 await service.change_user_status(user.id, UserStatusEnum.BLOCKED)

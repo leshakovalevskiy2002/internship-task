@@ -21,7 +21,6 @@ class UserStatusEnum(StrEnum):
 
 class TransactionStatusEnum(StrEnum):
     PROCESSED = "PROCESSED"
-    FAILED = "FAILED"
 
 
 class TransactionTypeEnum(StrEnum):

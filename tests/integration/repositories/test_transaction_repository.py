@@ -63,12 +63,12 @@ class TestTransactionRepository:
     async def test_get_transaction_by_id(self, transaction_repository, transaction_factory):
         transaction = await transaction_factory()
 
-        db_transaction = await transaction_repository.get_transaction_by_id(transaction_id=transaction.id)
+        db_transaction = await transaction_repository.get_transaction_by_id_for_update(transaction_id=transaction.id)
 
         assert db_transaction is not None
         assert db_transaction.user_id == transaction.user_id
         assert db_transaction.amount == transaction.amount
 
     async def test_get_transaction_by_id_returns_none_when_not_found(self, transaction_repository):
-        transaction = await transaction_repository.get_transaction_by_id(uuid4())
+        transaction = await transaction_repository.get_transaction_by_id_for_update(uuid4())
         assert transaction is None

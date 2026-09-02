@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy import select
@@ -31,13 +32,13 @@ class TestUserRepository:
         assert find_user is None
 
     async def test_get_users_with_balances_returns_all_users(self, user_repository, user_factory):
-        user1 = await user_factory(email="first@test.com")
-        user2 = await user_factory(email="second@test.com")
+        user1 = await user_factory(email="first@test.com", created=datetime(2026, 1, 1))
+        user2 = await user_factory(email="second@test.com", created=datetime(2025, 1, 1))
 
         users = await user_repository.get_users_with_balances()
 
         assert len(users) == 2
-        assert {u.email for u in users} == {user1.email, user2.email}
+        assert [u.email for u in users] == [user2.email, user1.email]
 
     async def test_get_users_with_balances_filters_by_id(self, user_repository, user_factory):
         user1 = await user_factory(email="first@test.com")

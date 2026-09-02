@@ -18,10 +18,10 @@ from app.services.service_errors.transaction_errors import (
     TransactionUserNotFoundError,
     UserBalanceNotFoundError,
 )
-from app.services.transactions_service import TransactionServiceWrite
+from app.services.transactions_service import TransactionService
 
 
-class TestTransactionServiceWrite:
+class TestTransactionService:
     class TestCreateTransaction:
         async def test_create_transaction_deposit_success(self, mocker):
             uow = mocker.AsyncMock()
@@ -44,10 +44,10 @@ class TestTransactionServiceWrite:
             )
 
             users.get_user_by_id.return_value = user
-            balances.get_user_balance.return_value = balance
+            balances.get_user_balance_for_update.return_value = balance
             transactions.create_transaction.return_value = transaction
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             result = await service.create_transaction(
                 user_id=user.id,
@@ -60,7 +60,7 @@ class TestTransactionServiceWrite:
             assert balance.amount == Decimal("150.00")
 
             users.get_user_by_id.assert_called_once_with(user.id)
-            balances.get_user_balance.assert_called_once_with(user_id=user.id, currency=CurrencyEnum.USD)
+            balances.get_user_balance_for_update.assert_called_once_with(user_id=user.id, currency=CurrencyEnum.USD)
             transactions.create_transaction.assert_called_once()
             uow_context.session.flush.assert_awaited_once()
             uow_context.session.refresh.assert_awaited_once_with(transaction)
@@ -86,10 +86,10 @@ class TestTransactionServiceWrite:
             )
 
             users.get_user_by_id.return_value = user
-            balances.get_user_balance.return_value = balance
+            balances.get_user_balance_for_update.return_value = balance
             transactions.create_transaction.return_value = transaction
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             result = await service.create_transaction(
                 user_id=user.id,
@@ -102,7 +102,7 @@ class TestTransactionServiceWrite:
             assert balance.amount == Decimal("40.00")
 
             users.get_user_by_id.assert_called_once_with(user.id)
-            balances.get_user_balance.assert_called_once_with(user_id=user.id, currency=CurrencyEnum.USD)
+            balances.get_user_balance_for_update.assert_called_once_with(user_id=user.id, currency=CurrencyEnum.USD)
             transactions.create_transaction.assert_called_once()
             uow_context.session.flush.assert_awaited_once()
             uow_context.session.refresh.assert_awaited_once_with(transaction)
@@ -110,7 +110,7 @@ class TestTransactionServiceWrite:
         async def test_create_transaction_reversal_not_allowed(self, mocker):
             uow = mocker.AsyncMock()
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionReversalNotAllowedError):
                 await service.create_transaction(
@@ -129,7 +129,7 @@ class TestTransactionServiceWrite:
 
             users.get_user_by_id.return_value = None
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionUserNotFoundError):
                 await service.create_transaction(
@@ -149,7 +149,7 @@ class TestTransactionServiceWrite:
             user = User(email="test@example.com", status=UserStatusEnum.BLOCKED)
             users.get_user_by_id.return_value = user
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionUserBlockedError):
                 await service.create_transaction(
@@ -171,9 +171,9 @@ class TestTransactionServiceWrite:
             user = User(email="test@example.com", status=UserStatusEnum.ACTIVE)
 
             users.get_user_by_id.return_value = user
-            balances.get_user_balance.return_value = None
+            balances.get_user_balance_for_update.return_value = None
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(UserBalanceNotFoundError):
                 await service.create_transaction(
@@ -198,9 +198,9 @@ class TestTransactionServiceWrite:
             balance = UserBalance(user_id=user.id, currency=CurrencyEnum.USD, amount=Decimal("50.00"))
 
             users.get_user_by_id.return_value = user
-            balances.get_user_balance.return_value = balance
+            balances.get_user_balance_for_update.return_value = balance
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(NegativeBalanceError):
                 await service.create_transaction(
@@ -228,9 +228,9 @@ class TestTransactionServiceWrite:
             balance = UserBalance(user_id=user.id, currency=CurrencyEnum.USD, amount=Decimal("50.00"))
 
             users.get_user_by_id.return_value = user
-            balances.get_user_balance.return_value = balance
+            balances.get_user_balance_for_update.return_value = balance
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
             await service.create_transaction(
                 user_id=user.id,
                 currency=CurrencyEnum.USD,
@@ -270,11 +270,11 @@ class TestTransactionServiceWrite:
             )
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
-            balances.get_user_balance.return_value = balance
+            transactions.get_transaction_by_id_for_update.return_value = transaction
+            balances.get_user_balance_for_update.return_value = balance
             transactions.create_transaction.return_value = reversal_transaction
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             result = await service.rollback_transaction(transaction.id, user.id)
 
@@ -319,11 +319,11 @@ class TestTransactionServiceWrite:
             )
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
-            balances.get_user_balance.return_value = balance
+            transactions.get_transaction_by_id_for_update.return_value = transaction
+            balances.get_user_balance_for_update.return_value = balance
             transactions.create_transaction.return_value = reversal_transaction
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             result = await service.rollback_transaction(transaction.id, user.id)
 
@@ -350,7 +350,7 @@ class TestTransactionServiceWrite:
 
             users.get_user_by_id.return_value = None
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionUserNotFoundError):
                 await service.rollback_transaction(uuid4(), uuid4())
@@ -367,9 +367,9 @@ class TestTransactionServiceWrite:
             user = User(email="test@example.com", status=UserStatusEnum.ACTIVE)
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = None
+            transactions.get_transaction_by_id_for_update.return_value = None
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionNotFoundError):
                 await service.rollback_transaction(uuid4(), user.id)
@@ -392,9 +392,9 @@ class TestTransactionServiceWrite:
             )
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
+            transactions.get_transaction_by_id_for_update.return_value = transaction
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionReversalNotAllowedError):
                 await service.rollback_transaction(transaction.id, user.id)
@@ -417,9 +417,9 @@ class TestTransactionServiceWrite:
             )
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
+            transactions.get_transaction_by_id_for_update.return_value = transaction
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionDoesNotBelongToUserException):
                 await service.rollback_transaction(transaction.id, user.id)
@@ -450,9 +450,9 @@ class TestTransactionServiceWrite:
             transaction.reversal = reversal
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
+            transactions.get_transaction_by_id_for_update.return_value = transaction
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionAlreadyRollbackedException):
                 await service.rollback_transaction(transaction.id, user.id)
@@ -475,9 +475,9 @@ class TestTransactionServiceWrite:
             )
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
+            transactions.get_transaction_by_id_for_update.return_value = transaction
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(TransactionBlockedUserException):
                 await service.rollback_transaction(transaction.id, user.id)
@@ -502,10 +502,10 @@ class TestTransactionServiceWrite:
             )
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
-            balances.get_user_balance.return_value = None
+            transactions.get_transaction_by_id_for_update.return_value = transaction
+            balances.get_user_balance_for_update.return_value = None
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(UserBalanceNotFoundError):
                 await service.rollback_transaction(transaction.id, user.id)
@@ -531,10 +531,10 @@ class TestTransactionServiceWrite:
             balance = UserBalance(user_id=user.id, currency=CurrencyEnum.USD, amount=Decimal("50"))
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
-            balances.get_user_balance.return_value = balance
+            transactions.get_transaction_by_id_for_update.return_value = transaction
+            balances.get_user_balance_for_update.return_value = balance
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
 
             with pytest.raises(NegativeBalanceError):
                 await service.rollback_transaction(transaction.id, user.id)
@@ -570,11 +570,11 @@ class TestTransactionServiceWrite:
             balance = UserBalance(user_id=user.id, currency=CurrencyEnum.USD, amount=Decimal("50.00"))
 
             users.get_user_by_id.return_value = user
-            transactions.get_transaction_by_id.return_value = transaction
+            transactions.get_transaction_by_id_for_update.return_value = transaction
             transactions.create_transaction.return_value = reversal_transaction
-            balances.get_user_balance.return_value = balance
+            balances.get_user_balance_for_update.return_value = balance
 
-            service = TransactionServiceWrite(uow)
+            service = TransactionService(uow)
             result = await service.rollback_transaction(transaction.id, user.id)
 
             assert balance.amount == Decimal("0.00")
