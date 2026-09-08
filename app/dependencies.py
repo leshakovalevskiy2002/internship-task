@@ -29,3 +29,7 @@ def get_user_service(uow: Annotated[UnitOfWork, Depends(get_uow)]) -> UserServic
 
 def get_transaction_service(uow: Annotated[UnitOfWork, Depends(get_uow)]) -> TransactionService:
     return TransactionService(uow=uow)
+
+
+UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+TransactionServiceDep = Annotated[TransactionService, Depends(get_transaction_service)]

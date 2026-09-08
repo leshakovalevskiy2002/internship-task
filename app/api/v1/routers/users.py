@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query, status
 
 from app.core.enums import UserStatusEnum
-from app.dependencies import get_user_repo, get_user_service
+from app.dependencies import UserServiceDep, get_user_repo
 from app.repositories.users import UserRepository
 from app.schemas.users import (
     RequestUserModel,
@@ -13,7 +13,6 @@ from app.schemas.users import (
     ResponseUserModel,
     UserModel,
 )
-from app.services.users_service import UserService
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -42,16 +41,10 @@ async def get_all_users_and_their_balances(
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=UserModel)
-async def create_user_and_his_balances(
-    new_user_data: RequestUserModel, user_service: Annotated[UserService, Depends(get_user_service)]
-):
+async def create_user_and_his_balances(new_user_data: RequestUserModel, user_service: UserServiceDep):
     return await user_service.create_user_and_balances(new_user_data.email)
 
 
 @router.patch("/{user_id}", response_model=UserModel)
-async def update_user_status(
-    user_service: Annotated[UserService, Depends(get_user_service)],
-    user_id: UUID,
-    user: RequestUserUpdateModel,
-):
+async def update_user_status(user_service: UserServiceDep, user_id: UUID, user: RequestUserUpdateModel):
     return await user_service.update_user_status(user_id=user_id, new_status=user.status)

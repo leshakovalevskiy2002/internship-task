@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from asyncpg import UniqueViolationError
 from sqlalchemy.exc import IntegrityError
 
 from app.core.enums import UserStatusEnum
@@ -30,7 +31,15 @@ class UserService:
                 return new_user
 
         except IntegrityError as exc:
-            raise UserAlreadyExistsError(email) from exc
+            if exc.orig is None:
+                raise
+
+            original_exc = exc.orig.__cause__
+
+            if isinstance(original_exc, UniqueViolationError):
+                if getattr(original_exc, "constraint_name") == "users_email_key":
+                    raise UserAlreadyExistsError(email) from exc
+            raise
 
     async def update_user_status(self, user_id: UUID, new_status: UserStatusEnum) -> User:
         async with self.uow as uow:

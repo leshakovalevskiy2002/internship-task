@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config.settings import get_async_session
-from app.dependencies import get_transaction_repo, get_transaction_service
+from app.dependencies import TransactionServiceDep, get_transaction_repo
 from app.repositories.queries import (
     get_not_roll_backed_deposit_amount,
     get_not_roll_backed_transactions_count,
@@ -19,7 +19,6 @@ from app.repositories.queries import (
 )
 from app.repositories.transactions import TransactionRepository
 from app.schemas.transactions import RequestTransactionModel, TransactionModel
-from app.services.transactions_service import TransactionService
 
 router = APIRouter(tags=["transactions"])
 
@@ -34,7 +33,7 @@ async def get_transactions(
 
 @router.post("/{user_id}/transactions", response_model=TransactionModel, status_code=status.HTTP_201_CREATED)
 async def create_transaction(
-    transaction_service: Annotated[TransactionService, Depends(get_transaction_service)],
+    transaction_service: TransactionServiceDep,
     user_id: UUID,
     transaction: RequestTransactionModel,
 ):
@@ -47,7 +46,7 @@ async def create_transaction(
 
 @router.patch("/{user_id}/transactions/{transaction_id}", response_model=TransactionModel)
 async def rollback_transaction(
-    transaction_service: Annotated[TransactionService, Depends(get_transaction_service)],
+    transaction_service: TransactionServiceDep,
     user_id: UUID,
     transaction_id: UUID,
 ):
