@@ -50,14 +50,6 @@ def session_maker(engine):
     return async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def clean_db(session_maker):
-    async with session_maker() as cleanup_session:
-        for table in reversed(Base.metadata.sorted_tables):
-            await cleanup_session.execute(table.delete())
-        await cleanup_session.commit()
-
-
 @pytest.fixture
 def uow(session_maker):
     return UnitOfWork(session_maker)

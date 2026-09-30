@@ -49,14 +49,15 @@ class TestGetUsersWithBalances:
     async def test_get_users_returns_all(self, client: AsyncClient, user_factory):
         user1 = await user_factory(email="first@test.com", created=datetime(2026, 1, 1))
         user2 = await user_factory(email="second@test.com", created=datetime(2025, 1, 1))
+        user3 = await user_factory(email="third@test.com", created=datetime(2025, 1, 1))
 
         response = await client.get(prefix)
 
         assert response.status_code == 200
 
         data = response.json()
-        assert len(data) == 2
-        assert [item["id"] for item in data] == [str(user2.id), str(user1.id)]
+        assert len(data) == 3
+        assert [item["id"] for item in data] == [*sorted([str(user2.id), str(user3.id)]), str(user1.id)]
 
     async def test_get_users_filters_by_id(self, client, user_factory):
         user = await user_factory()

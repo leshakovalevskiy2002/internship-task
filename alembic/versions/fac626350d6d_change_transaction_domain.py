@@ -285,6 +285,7 @@ def downgrade() -> None:
         ),
         type_=sa.VARCHAR(),
         existing_nullable=False,
+        server_default=None,
         postgresql_using="status::text",
     )
 
@@ -297,6 +298,7 @@ def downgrade() -> None:
         ),
         type_=sa.VARCHAR(length=4),
         existing_nullable=False,
+        server_default=None,
         postgresql_using="currency::text",
     )
 
@@ -309,6 +311,7 @@ def downgrade() -> None:
         ),
         type_=sa.VARCHAR(),
         existing_nullable=False,
+        server_default=None,
         postgresql_using="status::text",
     )
 
@@ -321,6 +324,7 @@ def downgrade() -> None:
         ),
         type_=sa.VARCHAR(length=4),
         existing_nullable=False,
+        server_default=None,
         postgresql_using="currency::text",
     )
 
