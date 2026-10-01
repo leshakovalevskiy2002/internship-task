@@ -21,4 +21,9 @@ class UserStatusEnum(StrEnum):
 
 class TransactionStatusEnum(StrEnum):
     PROCESSED = "PROCESSED"
-    ROLL_BACKED = "ROLLBACKED"
+
+
+class TransactionTypeEnum(StrEnum):
+    DEPOSIT = "DEPOSIT"
+    WITHDRAW = "WITHDRAW"
+    REVERSAL = "REVERSAL"
