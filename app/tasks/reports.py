@@ -1,22 +1,39 @@
 import dramatiq
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from app.config.database import create_session_maker, engine
+from app.config.database import create_engine, create_session_maker
 from app.config.redis import create_redis
-from app.repositories.reports import ReportRepository
 from app.services.report_generation_service import ReportGenerationService
+from app.uow import UnitOfWork
+
+_engine: AsyncEngine | None = None
+_session_maker: async_sessionmaker | None = None
+_redis: Redis | None = None
+
+
+def _get_session_maker() -> async_sessionmaker:
+    global _engine, _session_maker
+    if _session_maker is None:
+        _engine = create_engine()
+        _session_maker = create_session_maker(_engine)
+    return _session_maker
+
+
+def _get_redis():
+    global _redis
+    if _redis is None:
+        _redis = create_redis()
+    return _redis
 
 
 @dramatiq.actor
 async def generate_report(lock_id: str | None = None, lock_key: str | None = None):
-    redis = create_redis()
+    redis = _get_redis()
 
     try:
-        async_session_maker = create_session_maker(engine)
-
-        async with async_session_maker() as session:
-            repo = ReportRepository(session=session)
-            service = ReportGenerationService(report_repo=repo, redis=redis)
-
+        async with UnitOfWork(_get_session_maker()) as uow:
+            service = ReportGenerationService(uow=uow, redis=redis)
             await service.generate_year_report()
     finally:
         if lock_id and lock_key:
@@ -24,5 +41,3 @@ async def generate_report(lock_id: str | None = None, lock_key: str | None = Non
 
             if current_lock == lock_id:
                 await redis.delete(lock_key)
-
-        await redis.aclose()

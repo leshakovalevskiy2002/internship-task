@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.enums import TransactionTypeEnum
 from app.models.transaction import Transaction
 from app.models.user import User
-from app.queries.transaction_expressions import get_exchange_rate_case, has_reversal_transaction
+from app.queries.transaction_expressions import get_exchange_rate_case
 
 
 @dataclass
@@ -84,7 +84,7 @@ class ReportRepository:
                 Transaction.created >= start_date,
                 Transaction.created < end_date,
                 Transaction.operation_type == TransactionTypeEnum.DEPOSIT,
-                ~has_reversal_transaction(),
+                ~Transaction.reversal.has(),
             )
             .group_by("week")
         )
@@ -106,7 +106,7 @@ class ReportRepository:
                 Transaction.created >= start_date,
                 Transaction.created < end_date,
                 Transaction.operation_type == TransactionTypeEnum.WITHDRAW,
-                ~has_reversal_transaction(),
+                ~Transaction.reversal.has(),
             )
             .group_by("week")
         )
@@ -141,7 +141,7 @@ class ReportRepository:
                 Transaction.created >= start_date,
                 Transaction.created < end_date,
                 Transaction.operation_type != TransactionTypeEnum.REVERSAL,
-                ~has_reversal_transaction(),
+                ~Transaction.reversal.has(),
             )
             .group_by("week")
         )

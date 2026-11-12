@@ -3,6 +3,7 @@ from typing import Self
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.repositories.balances import BalanceRepository
+from app.repositories.reports import ReportRepository
 from app.repositories.transactions import TransactionRepository
 from app.repositories.users import UserRepository
 
@@ -18,6 +19,7 @@ class UnitOfWork:
         self.balances = BalanceRepository(self.session)
         self.transactions = TransactionRepository(self.session)
         self.users = UserRepository(self.session)
+        self.reports = ReportRepository(self.session)
 
         return self
 

@@ -4,15 +4,16 @@ from decimal import Decimal
 
 from redis.asyncio import Redis
 
-from app.repositories.reports import ReportRepository, WeeklyStatistics
+from app.repositories.reports import WeeklyStatistics
 from app.schemas.reports import WeeklyReport
+from app.uow import UnitOfWork
 
 
 class ReportGenerationService:
     REPORT_CACHE_KEY = "report:aggregated:data"
 
-    def __init__(self, report_repo: ReportRepository, redis: Redis):
-        self.report_repo = report_repo
+    def __init__(self, uow: UnitOfWork, redis: Redis):
+        self.uow = uow
         self.redis = redis
 
     async def generate_year_report(self) -> None:
@@ -23,7 +24,7 @@ class ReportGenerationService:
         start_date = last_completed_week - timedelta(weeks=51)
         end_date = current_week
 
-        stats = await self.report_repo.get_weekly_statistics(start_date, end_date)
+        stats = await self.uow.reports.get_weekly_statistics(start_date, end_date)
         report = self._build_report(stats, last_date=last_completed_week)
         await self.save_report_to_cache(report)
 
