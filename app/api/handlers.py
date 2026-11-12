@@ -9,7 +9,8 @@ from app.services.service_errors.transaction_errors import (
     TransactionAlreadyRollbackedException,
     TransactionBlockedUserException,
     TransactionDoesNotBelongToUserException,
-    TransactionNotExistsError,
+    TransactionNotFoundError,
+    TransactionReversalNotAllowedError,
     TransactionServiceError,
     TransactionUserBlockedError,
     TransactionUserNotFoundError,
@@ -61,17 +62,17 @@ def _status_for_user_error(exc: UserServiceError) -> int:
 
 
 def _status_for_transaction_error(exc: TransactionServiceError) -> int:
-    if isinstance(exc, (TransactionUserNotFoundError, UserBalanceNotFoundError)):
+    if isinstance(exc, (TransactionUserNotFoundError, UserBalanceNotFoundError, TransactionNotFoundError)):
         return status.HTTP_404_NOT_FOUND
     if isinstance(
         exc,
         (
             TransactionUserBlockedError,
-            TransactionNotExistsError,
             TransactionDoesNotBelongToUserException,
             TransactionAlreadyRollbackedException,
             TransactionBlockedUserException,
             NegativeBalanceError,
+            TransactionReversalNotAllowedError,
         ),
     ):
         return status.HTTP_400_BAD_REQUEST

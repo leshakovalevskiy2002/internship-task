@@ -2,34 +2,55 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Enum, ForeignKey, Numeric, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import CheckConstraint, Enum, ForeignKey, Numeric
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.enums import CurrencyEnum, TransactionStatusEnum
+from app.core.enums import CurrencyEnum, TransactionStatusEnum, TransactionTypeEnum
 from app.models.base import Base
 
 if TYPE_CHECKING:
-    pass
+    from app.models.user import User
 
 
 class Transaction(Base):
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
     currency: Mapped[CurrencyEnum] = mapped_column(
         Enum(
             CurrencyEnum,
-            values_callable=lambda currencies: [currency.value for currency in currencies],
-            native_enum=False,
-            name="transaction_currency_enum",
+            name="currency_enum",
+            native_enum=True,
         ),
-        default=CurrencyEnum.USD,
+        server_default=CurrencyEnum.USD.value,
     )
-    amount: Mapped[Decimal] = mapped_column(Numeric(precision=15, scale=2), server_default=text("0.00"))
+    operation_type: Mapped[TransactionTypeEnum] = mapped_column(
+        "type",
+        Enum(
+            TransactionTypeEnum,
+            name="transaction_type_enum",
+            native_enum=True,
+        ),
+    )
+    amount: Mapped[Decimal] = mapped_column(Numeric(precision=15, scale=2))
     status: Mapped[TransactionStatusEnum] = mapped_column(
         Enum(
             TransactionStatusEnum,
-            values_callable=lambda statuses: [status.value for status in statuses],
-            native_enum=False,
-            name="transaction_status",
+            name="transaction_status_enum",
+            native_enum=True,
         ),
-        default=TransactionStatusEnum.PROCESSED,
+        server_default=TransactionStatusEnum.PROCESSED.value,
     )
+    reversal_of_id: Mapped[UUID | None] = mapped_column(ForeignKey("transactions.id"), unique=True)
+
+    owner: Mapped["User"] = relationship("User", back_populates="transactions")
+    original_transaction: Mapped["Transaction | None"] = relationship(
+        "Transaction",
+        back_populates="reversal",
+        remote_side="Transaction.id",
+    )
+    reversal: Mapped["Transaction | None"] = relationship(
+        "Transaction",
+        back_populates="original_transaction",
+        uselist=False,
+    )
+
+    __table_args__ = (CheckConstraint("amount > 0", name="transaction_amount_positive"),)

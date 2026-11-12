@@ -10,18 +10,27 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.balance import UserBalance
+    from app.models.transaction import Transaction
 
 
 class User(Base):
-    email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(100), unique=True)
     status: Mapped[UserStatusEnum] = mapped_column(
         Enum(
-            UserStatusEnum, values_callable=lambda x: [e.value for e in x], native_enum=False, name="user_status_enum"
+            UserStatusEnum,
+            name="user_status_enum",
+            native_enum=True,
         ),
-        default=UserStatusEnum.ACTIVE,
+        server_default=UserStatusEnum.ACTIVE.value,
     )
 
-    user_balances: Mapped[list["UserBalance"]] = relationship("UserBalance", back_populates="owner")
+    user_balances: Mapped[list["UserBalance"]] = relationship(
+        "UserBalance",
+        back_populates="owner",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    transactions: Mapped[list["Transaction"]] = relationship("Transaction", back_populates="owner")
 
     def __repr__(self):
         return f"User(email={self.email})"

@@ -1,14 +1,15 @@
 from decimal import Decimal
 from uuid import UUID
 
-from app.core.enums import CurrencyEnum, TransactionStatusEnum, UserStatusEnum
+from app.core.enums import CurrencyEnum, TransactionTypeEnum, UserStatusEnum
 from app.models.transaction import Transaction
 from app.services.service_errors.transaction_errors import (
     NegativeBalanceError,
     TransactionAlreadyRollbackedException,
     TransactionBlockedUserException,
     TransactionDoesNotBelongToUserException,
-    TransactionNotExistsError,
+    TransactionNotFoundError,
+    TransactionReversalNotAllowedError,
     TransactionUserBlockedError,
     TransactionUserNotFoundError,
     UserBalanceNotFoundError,
@@ -20,8 +21,13 @@ class TransactionService:
     def __init__(self, uow: UnitOfWork) -> None:
         self.uow = uow
 
-    async def create_transaction(self, user_id: UUID, currency: CurrencyEnum, amount: Decimal) -> Transaction:
+    async def create_transaction(
+        self, user_id: UUID, currency: CurrencyEnum, amount: Decimal, operation_type: TransactionTypeEnum
+    ) -> Transaction:
         async with self.uow as uow:
+            if operation_type == TransactionTypeEnum.REVERSAL:
+                raise TransactionReversalNotAllowedError()
+
             user = await uow.users.get_user_by_id(user_id)
 
             if user is None:
@@ -35,10 +41,16 @@ class TransactionService:
             if user_balance is None:
                 raise UserBalanceNotFoundError(user_id=user_id, currency=currency.value)
 
-            new_balance_amount = user_balance.amount + amount
+            new_balance_amount = user_balance.amount
 
-            if new_balance_amount < 0:
-                raise NegativeBalanceError(new_balance=new_balance_amount)
+            if operation_type == TransactionTypeEnum.WITHDRAW:
+                new_balance_amount -= amount
+
+                if new_balance_amount < Decimal("0.00"):
+                    raise NegativeBalanceError(new_balance=new_balance_amount)
+
+            elif operation_type == TransactionTypeEnum.DEPOSIT:
+                new_balance_amount += amount
 
             user_balance.amount = new_balance_amount
 
@@ -46,6 +58,7 @@ class TransactionService:
                 user_id=user_id,
                 currency=currency,
                 amount=amount,
+                operation_type=operation_type,
             )
 
             await uow.session.flush()
@@ -63,12 +76,15 @@ class TransactionService:
             transaction = await uow.transactions.get_transaction_by_id_for_update(transaction_id)
 
             if transaction is None:
-                raise TransactionNotExistsError(transaction_id)
+                raise TransactionNotFoundError(transaction_id)
+
+            if transaction.operation_type == TransactionTypeEnum.REVERSAL:
+                raise TransactionReversalNotAllowedError()
 
             if transaction.user_id != user.id:
                 raise TransactionDoesNotBelongToUserException(transaction_id=transaction_id, user_id=user.id)
 
-            if transaction.status == TransactionStatusEnum.ROLL_BACKED:
+            if transaction.reversal is not None:
                 raise TransactionAlreadyRollbackedException(transaction_id=transaction_id)
 
             if user.status == UserStatusEnum.BLOCKED:
@@ -82,14 +98,25 @@ class TransactionService:
                 raise UserBalanceNotFoundError(user_id=user_id, currency=transaction.currency.value)
 
             user_balance_amount = user_balance.amount
-            new_user_balance_amount = user_balance_amount - transaction.amount
 
-            if new_user_balance_amount < 0:
-                raise NegativeBalanceError(new_balance=new_user_balance_amount)
+            if transaction.operation_type == TransactionTypeEnum.WITHDRAW:
+                user_balance_amount += transaction.amount
+            elif transaction.operation_type == TransactionTypeEnum.DEPOSIT:
+                user_balance_amount -= transaction.amount
 
-            user_balance.amount = new_user_balance_amount
-            transaction.status = TransactionStatusEnum.ROLL_BACKED
+                if user_balance_amount < Decimal("0.00"):
+                    raise NegativeBalanceError(new_balance=user_balance_amount)
+
+            user_balance.amount = user_balance_amount
+            reversal_transaction = await uow.transactions.create_transaction(
+                user_id=user.id,
+                currency=transaction.currency,
+                amount=transaction.amount,
+                operation_type=TransactionTypeEnum.REVERSAL,
+            )
+
+            transaction.reversal = reversal_transaction
 
             await uow.session.flush()
-            await uow.session.refresh(transaction)
-            return transaction
+            await uow.session.refresh(reversal_transaction)
+            return reversal_transaction

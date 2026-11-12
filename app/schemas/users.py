@@ -1,14 +1,14 @@
 from datetime import datetime
-from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-from app.core.enums import CurrencyEnum, UserStatusEnum
+from app.core.enums import UserStatusEnum
+from app.schemas.balances import UserBalanceResponse
 
 
-class RequestUserModel(BaseModel):
+class UserRegistrationRequest(BaseModel):
     email: Annotated[EmailStr, Field(max_length=100)]
 
     @field_validator("email", mode="before")
@@ -24,29 +24,23 @@ class RequestUserModel(BaseModel):
         return cleaned_value
 
 
-class RequestUserUpdateModel(BaseModel):
-    status: UserStatusEnum
-
-
-class ResponseUserBalanceModel(BaseModel):
-    currency: CurrencyEnum
-    amount: Annotated[Decimal, Field(ge=0, max_digits=15, decimal_places=2)]
-    model_config = ConfigDict(from_attributes=True)
-
-
-class ResponseUserModel(BaseModel):
-    id: UUID
-    email: str
-    status: UserStatusEnum
-    created: datetime
-    balances: list[ResponseUserBalanceModel]
-    model_config = ConfigDict(from_attributes=True)
-
-
-class UserModel(BaseModel):
+class BaseUserModel(BaseModel):
     id: UUID
     email: str
     status: UserStatusEnum
     created: datetime
     updated: datetime
+
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserResponse(BaseUserModel):
+    pass
+
+
+class UserWithBalancesResponse(BaseUserModel):
+    balances: list[UserBalanceResponse]
+
+
+class UpdateUserStatusRequest(BaseModel):
+    status: UserStatusEnum

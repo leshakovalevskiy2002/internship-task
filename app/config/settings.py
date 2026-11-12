@@ -13,7 +13,7 @@ class DatabaseSettings(BaseSettings):
     host: str = "localhost"
     port: int = 5432
 
-    model_config = SettingsConfigDict(env_prefix="POSTGRES_", env_file=".env")
+    model_config = SettingsConfigDict(env_prefix="POSTGRES_", env_file=".env", extra="ignore")
 
     @model_validator(mode="after")
     def validate_required(self):

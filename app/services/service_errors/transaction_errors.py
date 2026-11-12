@@ -26,9 +26,9 @@ class NegativeBalanceError(TransactionServiceError):
         super().__init__(f"Negative balance: {new_balance}")
 
 
-class TransactionNotExistsError(TransactionServiceError):
+class TransactionNotFoundError(TransactionServiceError):
     def __init__(self, transaction_id: UUID):
-        super().__init__(f"Transaction with id=`{transaction_id}` does not exist")
+        super().__init__(f"Transaction with id=`{transaction_id}` not found")
 
 
 class TransactionDoesNotBelongToUserException(TransactionServiceError):
@@ -44,3 +44,8 @@ class TransactionAlreadyRollbackedException(TransactionServiceError):
 class TransactionBlockedUserException(TransactionServiceError):
     def __init__(self, user_id: UUID):
         super().__init__(f"User with id=`{user_id}` is blocked")
+
+
+class TransactionReversalNotAllowedError(TransactionServiceError):
+    def __init__(self):
+        super().__init__(f"Incorrect transaction type")
