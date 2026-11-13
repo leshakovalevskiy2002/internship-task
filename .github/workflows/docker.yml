@@ -19,9 +19,34 @@ jobs:
         run: cp .env.dev.example .env.dev
 
       - name: Create .env.prod from example
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_DEFAULT_USER }}
+          RABBITMQ_DEFAULT_PASS: ${{ secrets.RABBITMQ_DEFAULT_PASS }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
         run: |
-          cp .env.prod.example .env.prod
-          sed -i "s/POSTGRES_PASSWORD_PLACEHOLDER/${{ secrets.POSTGRES_PASSWORD }}/g" .env.prod
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          
+          env_file = Path(".env.prod")
+          content = env_file.read_text()
+          
+          replacements = {
+              "POSTGRES_PASSWORD_PLACEHOLDER": os.environ["POSTGRES_PASSWORD"],
+              "RABBITMQ_DEFAULT_USER_PLACEHOLDER": os.environ["RABBITMQ_DEFAULT_USER"],
+              "RABBITMQ_DEFAULT_PASS_PLACEHOLDER": os.environ["RABBITMQ_DEFAULT_PASS"],
+              "REDIS_PASSWORD_PLACEHOLDER": os.environ["REDIS_PASSWORD"],
+          }
+          
+          for placeholder, value in replacements.items():
+              content = content.replace(placeholder, value)
+          
+          if any(key in content for key in replacements):
+              raise RuntimeError("Some secrets were not replaced")
+          
+          env_file.write_text(content)
+          PY
 
       # Validate and build dev and prod compose-files
       - name: Validate dev Compose
@@ -51,9 +76,13 @@ jobs:
         if: always()
         run: docker compose --env-file .env.dev --file docker-compose.yml down -v
 
+      # Run prod migrations
+      - name: Run prod migrations
+        run: docker compose --env-file .env.prod --file docker-compose.prod.yml run --rm migrate
+
       # Smoke test prod
       - name: Start prod stack
-        run: docker compose --env-file .env.prod --file docker-compose.prod.yml up -d --wait
+        run: docker compose --env-file .env.prod --file docker-compose.prod.yml up -d api worker scheduler nginx --wait
 
       - name: Prod smoke test
         run: curl --fail --silent http://localhost/
