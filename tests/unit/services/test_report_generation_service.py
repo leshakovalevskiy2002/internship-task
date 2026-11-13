@@ -103,9 +103,9 @@ class TestReportGenerationService:
 
     @freeze_time("2026-08-15")
     async def test_generate_year_report(self, mocker):
-        report_repo = mocker.AsyncMock()
+        uow = mocker.AsyncMock()
         redis = mocker.AsyncMock()
-        service = ReportGenerationService(report_repo, redis)
+        service = ReportGenerationService(uow, redis)
 
         save_report_mock = mocker.AsyncMock()
 
@@ -130,12 +130,12 @@ class TestReportGenerationService:
             },
         )
 
-        report_repo.get_weekly_statistics.return_value = stats
+        uow.reports.get_weekly_statistics.return_value = stats
         service.save_report_to_cache = save_report_mock
 
         await service.generate_year_report()
 
-        report_repo.get_weekly_statistics.assert_awaited_once_with(
+        uow.reports.get_weekly_statistics.assert_awaited_once_with(
             date(2025, 8, 11),
             date(2026, 8, 10),
         )

@@ -21,6 +21,10 @@ def dramatiq_broker(monkeypatch, rabbitmq_container):
     monkeypatch.setenv("RABBITMQ_HOST", host)
     monkeypatch.setenv("RABBITMQ_PORT", str(port))
 
+    from app.config.settings import get_rabbitmq_settings
+
+    get_rabbitmq_settings.cache_clear()
+
     return configure_broker()
 
 
