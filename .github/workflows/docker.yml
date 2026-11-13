@@ -19,6 +19,9 @@ jobs:
         run: cp .env.dev.example .env.dev
 
       - name: Create .env.prod from example
+        run: cp .env.prod.example .env.prod
+
+      - name: Configure production secrets
         env:
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           RABBITMQ_DEFAULT_USER: ${{ secrets.RABBITMQ_DEFAULT_USER }}
