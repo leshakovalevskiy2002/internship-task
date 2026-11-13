@@ -24,6 +24,10 @@ class ReportService:
         lock = await self.redis.set(self.REPORT_LOCK_KEY, lock_id, nx=True, ex=600)
 
         if lock:
-            generate_report.send(lock_id, self.REPORT_LOCK_KEY)
+            try:
+                generate_report.send(lock_id, self.REPORT_LOCK_KEY)
+            except Exception:
+                await self.redis.delete(self.REPORT_CACHE_KEY)
+                raise
 
         return {"status": "generating"}

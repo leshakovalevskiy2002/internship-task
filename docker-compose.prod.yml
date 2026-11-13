@@ -1,16 +1,35 @@
 name: transactions-service-prod
 
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: Dockerfile.prod
+
+
 services:
+  migrate:
+    <<: *app
+    command: alembic upgrade head
+    env_file:
+      - .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   api:
     image: transactions-service:prod
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
+    <<: *app
     restart: unless-stopped
     env_file:
       - .env.prod
     depends_on:
       db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7999/')" ]
@@ -38,7 +57,62 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    env_file:
+      - .env.prod
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.2.0-alpine
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  worker:
+    <<: *app
+    command: dramatiq app.worker --processes 2 --threads 2 --queues reports
+    env_file:
+      - .env.prod
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  scheduler:
+    <<: *app
+    command: python -m app.scheduler.main
+    env_file:
+      - .env.prod
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres-data-prod:
     name: transactions-postgres-prod
+  redis-data:
+    name: transactions-redis-prod
+  rabbitmq_data:
+    name: transactions-rabbitmq-prod

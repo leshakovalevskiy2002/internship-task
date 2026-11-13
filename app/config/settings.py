@@ -2,7 +2,7 @@ import functools
 from functools import cached_property
 from urllib.parse import quote
 
-from pydantic import SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,11 +32,13 @@ class DatabaseSettings(BaseSettings):
 
 
 class RabbitMQSettings(BaseSettings):
-    user: str = "guest"
-    password: SecretStr
+    user: str = Field(default="guest", validation_alias=AliasChoices("RABBITMQ_DEFAULT_USER", "RABBITMQ_USER"))
+    password: SecretStr = Field(
+        validation_alias=AliasChoices("RABBITMQ_DEFAULT_PASS", "RABBITMQ_PASSWORD"),
+    )
+    vhost: str = Field(default="/", validation_alias=AliasChoices("RABBITMQ_DEFAULT_VHOST", "RABBITMQ_VHOST"))
     host: str = "localhost"
     port: int = 5672
-    vhost: str = "/"
 
     model_config = SettingsConfigDict(env_prefix="RABBITMQ_", env_file=".env", extra="ignore")
 

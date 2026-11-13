@@ -1,8 +1,13 @@
+from app.config.broker import configure_broker
+
+configure_broker()
+
 from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI
 from loguru import logger
+from sqlalchemy import text
 
 from app.api import router
 from app.config.database import create_engine, create_session_maker
@@ -25,10 +30,16 @@ async def lifespan(app: FastAPI):
         logger.info("The application is starting.")
 
         try:
+            logger.info("Initializing database")
+            async with app.state.engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+            logger.info("Database initialized")
+
             logger.info("Initializing Redis")
             app.state.redis = create_redis()
-
             await app.state.redis.ping()
+            logger.info("Redis initialized")
+
             logger.info("Application started")
             yield
         except Exception:

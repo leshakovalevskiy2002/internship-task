@@ -1,3 +1,4 @@
+.github/
 .git/
 .gitignore
 .dockerignore
@@ -22,3 +23,6 @@ logs/
 
 .env*
 README.md
+
+postman/
+tests/

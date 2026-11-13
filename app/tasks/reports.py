@@ -27,7 +27,7 @@ def _get_redis():
     return _redis
 
 
-@dramatiq.actor
+@dramatiq.actor(queue_name="reports")
 async def generate_report(lock_id: str | None = None, lock_key: str | None = None):
     redis = _get_redis()
 
