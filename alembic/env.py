@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 import app.models
 from alembic import context
-from app.config.settings import settings
+from app.config.settings import get_database_settings
 from app.models.base import Base
 
 config = context.config
@@ -15,7 +15,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", settings.url())
+config.set_main_option("sqlalchemy.url", get_database_settings().url)
 
 target_metadata = Base.metadata
 

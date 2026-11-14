@@ -1,6 +1,7 @@
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import select
 
 from app.core.enums import CurrencyEnum, TransactionTypeEnum, UserStatusEnum
@@ -11,6 +12,7 @@ from tests.fixtures.users import user_for_api
 prefix = "/api/v1"
 
 
+@pytest.mark.integration
 class TestGetTransactionsAPI:
     async def test_get_transactions_returns_all(self, client, transaction_factory):
         await transaction_factory()
@@ -47,6 +49,7 @@ class TestGetTransactionsAPI:
         assert "operation_type" in transaction
 
 
+@pytest.mark.integration
 class TestCreateTransactionAPI:
     async def test_create_transaction_success(self, client, user_factory, user_balance_factory, session):
         user = await user_factory()
@@ -165,6 +168,7 @@ class TestCreateTransactionAPI:
         assert response.status_code == 422
 
 
+@pytest.mark.integration
 class TestRollbackTransactionAPI:
     async def test_rollback_transaction_deposit_success(
         self, client, user_factory, user_balance_factory, transaction_factory, session

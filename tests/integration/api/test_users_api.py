@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
+import pytest
 from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -14,6 +15,7 @@ from app.models.user import User
 prefix = "/api/v1/users"
 
 
+@pytest.mark.integration
 class TestRegistrationAPI:
     async def test_registration_success(self, client: AsyncClient, session: AsyncSession):
         response = await client.post(prefix, json={"email": "test@example.com"})
@@ -45,6 +47,7 @@ class TestRegistrationAPI:
         assert r1.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
+@pytest.mark.integration
 class TestGetUsersWithBalances:
     async def test_get_users_returns_all(self, client: AsyncClient, user_factory):
         user1 = await user_factory(email="first@test.com", created=datetime(2026, 1, 1))
@@ -115,6 +118,7 @@ class TestGetUsersWithBalances:
         assert amounts == sorted(amounts)
 
 
+@pytest.mark.integration
 class TestChangeUserStatus:
     async def test_change_user_status_success(self, client, user_for_api):
         user = await user_for_api()

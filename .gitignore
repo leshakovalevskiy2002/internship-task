@@ -1,3 +1,4 @@
 .env*
 !.env.dev.example
 !.env.prod.example
+!.env.test.example

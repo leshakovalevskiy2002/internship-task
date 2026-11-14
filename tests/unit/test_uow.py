@@ -1,6 +1,7 @@
 import pytest
 
 
+@pytest.mark.unit
 class TestUnitOfWork:
     async def test_session_before_enter_raises(self, uow):
         with pytest.raises(RuntimeError, match="UoW is not started"):
