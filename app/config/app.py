@@ -67,6 +67,10 @@ setup_exception_handlers(app)
 app.include_router(router)
 
 
-@app.get("/")
+@app.get(
+    "/",
+    description="Health-check endpoint. Returns a service name to confirm the application is running.",
+    summary="Home endpoint",
+)
 async def home():
     return {"message": "Transactions Service"}
