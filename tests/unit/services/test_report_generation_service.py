@@ -2,6 +2,7 @@ import json
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+import pytest
 from freezegun import freeze_time
 
 from app.repositories.reports import WeeklyStatistics
@@ -9,6 +10,7 @@ from app.schemas.reports import WeeklyReport
 from app.services.report_generation_service import ReportGenerationService
 
 
+@pytest.mark.unit
 class TestReportGenerationService:
     async def test_build_report(self):
         stats = WeeklyStatistics(

@@ -1,6 +1,7 @@
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import select
 
 from app.core.enums import CurrencyEnum
@@ -8,6 +9,7 @@ from app.models.balance import UserBalance
 from app.repositories.balances import BalanceRepository
 
 
+@pytest.mark.integration
 class TestBalanceRepository:
     async def test_create_default_balances_for_user(self, balance_repository: BalanceRepository, user_factory):
         session = balance_repository.session

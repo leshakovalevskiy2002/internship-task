@@ -7,6 +7,7 @@ from app.core.enums import CurrencyEnum, TransactionTypeEnum
 from app.schemas.transactions import CreateTransactionModel
 
 
+@pytest.mark.unit
 class TestCreateTransactionSchema:
     @pytest.mark.parametrize("amount", [Decimal("0.00"), Decimal("-0.01")])
     def test_amount_validation_failed(self, amount: Decimal):

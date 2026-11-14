@@ -1,10 +1,13 @@
 import json
 
+import pytest
+
 from app.tasks.reports import generate_report
 
 prefix = "/api/v1/reports"
 
 
+@pytest.mark.integration
 class TestGetAnalytics:
     async def test_returns_cached_report(self, client_with_redis, redis):
         report = {

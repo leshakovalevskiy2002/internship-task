@@ -13,6 +13,7 @@ from app.services.service_errors.user_errors import (
 from app.services.users_service import UserService
 
 
+@pytest.mark.unit
 class TestUserService:
     class TestCreateUserAndBalances:
         async def test_create_user_and_balances_success(self, mocker):

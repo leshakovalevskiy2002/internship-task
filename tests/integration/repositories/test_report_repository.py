@@ -1,10 +1,13 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+import pytest
+
 from app.core.constants import EXCHANGE_RATES_TO_USD
 from app.core.enums import CurrencyEnum, TransactionTypeEnum
 
 
+@pytest.mark.integration
 class TestReportRepository:
     UTC = timezone.utc
 

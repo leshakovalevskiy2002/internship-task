@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import select
 
 from app.core.enums import CurrencyEnum, UserStatusEnum
@@ -8,6 +9,7 @@ from app.models.user import User
 from app.repositories.users import UserRepository
 
 
+@pytest.mark.integration
 class TestUserRepository:
     async def test_get_user_by_email(self, user_repository: UserRepository, user_factory):
         user = await user_factory()

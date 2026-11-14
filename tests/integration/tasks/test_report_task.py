@@ -7,6 +7,7 @@ from app.services.report_query_service import ReportService
 from app.tasks.reports import generate_report
 
 
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_generate_report_task(dramatiq_worker, dramatiq_broker, redis, monkeypatch, session_maker):
     lock_id = "redis-lock"

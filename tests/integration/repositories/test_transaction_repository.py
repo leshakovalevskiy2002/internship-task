@@ -2,12 +2,14 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import select
 
 from app.core.enums import CurrencyEnum, TransactionTypeEnum
 from app.models.transaction import Transaction
 
 
+@pytest.mark.integration
 class TestTransactionRepository:
     async def test_get_transactions_returns_all(self, transaction_repository, transaction_factory):
         transaction1 = await transaction_factory()

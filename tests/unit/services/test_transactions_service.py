@@ -21,6 +21,7 @@ from app.services.service_errors.transaction_errors import (
 from app.services.transactions_service import TransactionService
 
 
+@pytest.mark.unit
 class TestTransactionService:
     class TestCreateTransaction:
         async def test_create_transaction_deposit_success(self, mocker):

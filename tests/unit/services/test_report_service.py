@@ -1,9 +1,12 @@
 import json
 from unittest.mock import patch
 
+import pytest
+
 from app.services.report_query_service import ReportService
 
 
+@pytest.mark.unit
 class TestReportService:
     async def test_get_report_returns_cached_report(self, mocker):
         redis = mocker.AsyncMock()

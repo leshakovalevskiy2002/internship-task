@@ -4,6 +4,7 @@ from pydantic import ValidationError
 from app.schemas.users import UserRegistrationRequest
 
 
+@pytest.mark.unit
 class TestUserRegistrationRequest:
     @pytest.mark.parametrize(
         ["email", "expected"],
