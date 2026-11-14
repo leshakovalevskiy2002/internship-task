@@ -1,0 +1,1592 @@
+{
+  "info": {
+    "_postman_id": "4871a7d6-400a-4422-aa36-a3f497502010",
+    "name": "transactions-service",
+    "description": "# Financial User & Transaction Management Service\n\n## Overview\n\nA comprehensive **multi-currency financial platform** for user management and transaction processing.\n\n## Core Features\n\n### User Management\n\n- User registration with automatic balance creation for all supported currencies\n    \n- User listing with filtering (ID, email, status)\n    \n- Status management (`ACTIVE`/`BLOCKED`)\n    \n\n### Financial Operations\n\n- `Deposits`\\- add funds to user balance\n    \n- **`Withdrawals`** - deduct funds (rejected if balance insufficient)\n    \n- **`Transaction rollback`** - automatic reversal creation\n    \n- **`Transaction history`** - filtered by user, newest first\n    \n\n### Multi-Currency Support\n\n- Supports `USD`, `EUR`, `BTC`, `ETH`, `DOGE`, `USDT`, `AUD`, `CAD`, `ARS`, `PLN`\n    \n- Automatic balance creation for every currency per user\n    \n\n### Analytics & Reporting\n\n- Asynchronous report generation for last 52 weeks\n    \n- Redis caching for fast access\n    \n- Lock mechanism prevents duplicate generation\n    \n\n### Security & Validation\n\n- Email validation\n    \n- Balance sufficiency checks\n    \n- Blocked users cannot perform transactions\n    \n- No direct REVERSAL creation (only via rollback)\n    \n- Prevention of duplicate rollbacks\n    \n\n## Key Entities\n\n| Entity | Description |\n| --- | --- |\n| **User** | Email, status, balances |\n| **Balance** | Currency + amount |\n| **Transaction** | DEPOSIT/WITHDRAW/REVERSAL |\n| **Report** | Weekly aggregated analytics |\n\n## Workflow\n\n1. **Register** → User created with all currency balances\n    \n2. **Transaction** → Balance updated (DEPOSIT adds, WITHDRAW subtracts)\n    \n3. **Rollback** → Creates REVERSAL transaction compensating the original\n    \n4. **Report** → Generated async, cached for performance",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "56995507",
+    "_collection_link": "https://go.postman.co/collection/56995507-4871a7d6-400a-4422-aa36-a3f497502010?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "registration",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"email\": \"wrong\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/users",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users"
+          ]
+        },
+        "description": "# Register a New User\n\nCreates a new user account and initializes default balances for all supported currencies.\n\n---\n\n### Request Body\n\n**Content-Type:** `application/json`\n\n| Field | Type | Required | Description |\n| --- | --- | --- | --- |\n| `email` | string | Yes | User's email address. Must be a valid email address. |\n\n**Example:**\n\n``` json\n{\n  \"email\": \"user@example.com\"\n}\n\n ```\n\n---\n\n### Responses\n\n| Status Code | Description |\n| --- | --- |\n| `201 Created` | User was successfully created. Default balances are created for all supported currencies. |\n| `409 Conflict` | A user with the provided email address already exists. |\n| `422 Unprocessable Entity` | The provided email address is not valid (e.g., missing `@`\\-sign or malformed format). |\n\n### Response Body — `201 Created`\n\n``` json\n{\n  \"id\": \"7d8b334e-c775-4003-b54d-b2ad56b54f3f\",\n  \"email\": \"user@example.com\",\n  \"status\": \"ACTIVE\",\n  \"created\": \"2026-08-05T16:03:21.384931Z\",\n  \"updated\": \"2026-08-05T16:03:21.384931Z\"\n}\n\n ```"
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"test@example.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 23:06:13 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "170"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"5fa1eb19-492e-4e3f-a7c9-6642a07a632b\",\n  \"email\": \"test@example.com\",\n  \"status\": \"ACTIVE\",\n  \"created\": \"2026-08-04T23:06:14.156480Z\",\n  \"updated\": \"2026-08-04T23:06:14.156480Z\"\n}"
+        },
+        {
+          "name": "user_already_exists",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"test@example.com\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 23:08:27 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "62"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"User with email=`test@example.com` already exists\"\n}"
+        },
+        {
+          "name": "invalid_email",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"email\": \"wrong\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 23:10:25 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "86"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"value is not a valid email address: An email address must have an @-sign.\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "get_users_with_balances",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/users",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users"
+          ]
+        },
+        "description": "# Get Users with Balances\n\nRetrieves a list of users with their balances across all supported currencies.\n\n## Query Parameters\n\n| Parameter | Type | Required | Description |\n| --- | --- | --- | --- |\n| `user_id` | string (UUID) | No | Filters users by their unique user ID. |\n| `email` | string | No | Filters users by their email address. |\n| `user_status` | string | No | Filters users by their current status. Supported values include `ACTIVE` and `BLOCKED`. |\n\n**Multiple filters can be provided simultaneously.**\n\n## Response\n\nReturns a JSON array of user objects. Each object includes:\n\n- `id` — Unique identifier of the user (UUID).\n    \n- `email` — The user's email address.\n    \n- `status` — Account status (e.g. `ACTIVE`).\n    \n- `created` — ISO 8601 timestamp of when the account was created.\n    \n- `updated` — ISO 8601 timestamp of the last update.\n    \n- `balances` — Array of balance objects, one per supported currency:\n    \n    - `currency` — Currency code (e.g. `USD`, `EUR`, `BTC`, `ETH`).\n        \n    - `amount` — Current balance as a decimal string.\n        \n\nBalances are returned **sorted by** **`amount`** **in ascending order**.\n\n**Example:**\n\n``` json\n[\n  {\n    \"id\": \"7d8b334e-c775-4003-b54d-b2ad56b54f3f\",\n    \"email\": \"user@example.com\",\n    \"status\": \"ACTIVE\",\n    \"created\": \"2026-08-05T16:03:21.384931Z\",\n    \"updated\": \"2026-08-05T16:03:21.384931Z\",\n    \"balances\": [\n      {\n        \"currency\": \"USD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"EUR\",\n        \"amount\": \"100.00\"\n      }\n    ]\n  }\n]\n\n ```"
+      },
+      "response": [
+        {
+          "name": "filter_by_user_id",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?user_id=7d8b334e-c775-4003-b54d-b2ad56b54f3f",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "7d8b334e-c775-4003-b54d-b2ad56b54f3f",
+                  "description": "Filter by user_id"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 22:40:24 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "537"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n  {\n    \"id\": \"7d8b334e-c775-4003-b54d-b2ad56b54f3f\",\n    \"email\": \"user@example.com\",\n    \"status\": \"ACTIVE\",\n    \"created\": \"2026-08-04T22:29:16.607905Z\",\n    \"updated\": \"2026-08-04T22:29:16.607905Z\",\n    \"balances\": [\n      {\n        \"currency\": \"USD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"EUR\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"AUD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"CAD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"ARS\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"PLN\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"BTC\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"ETH\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"DOGE\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"USDT\",\n        \"amount\": \"0.00\"\n      }\n    ]\n  }\n]"
+        },
+        {
+          "name": "filter_by_user_status",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?user_status=ACTIVE",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "user_status",
+                  "value": "ACTIVE",
+                  "description": "Filter by status"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 22:50:19 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "1074"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n  {\n    \"id\": \"7d8b334e-c775-4003-b54d-b2ad56b54f3f\",\n    \"email\": \"user@example.com\",\n    \"status\": \"ACTIVE\",\n    \"created\": \"2026-08-04T22:29:16.607905Z\",\n    \"updated\": \"2026-08-04T22:29:16.607905Z\",\n    \"balances\": [\n      {\n        \"currency\": \"USD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"EUR\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"AUD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"CAD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"ARS\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"PLN\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"BTC\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"ETH\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"DOGE\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"USDT\",\n        \"amount\": \"0.00\"\n      }\n    ]\n  },\n  {\n    \"id\": \"d150e2b0-91e5-4874-ad8d-91e70fc86a48\",\n    \"email\": \"user3@example.com\",\n    \"status\": \"ACTIVE\",\n    \"created\": \"2026-08-04T22:46:19.480411Z\",\n    \"updated\": \"2026-08-04T22:46:19.480411Z\",\n    \"balances\": [\n      {\n        \"currency\": \"USD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"EUR\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"AUD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"CAD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"ARS\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"PLN\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"BTC\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"ETH\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"DOGE\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"USDT\",\n        \"amount\": \"0.00\"\n      }\n    ]\n  }\n]"
+        },
+        {
+          "name": "filter_by_email",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users?email=user@example.com",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "user@example.com",
+                  "description": "Filter by email"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 22:52:12 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "537"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n  {\n    \"id\": \"7d8b334e-c775-4003-b54d-b2ad56b54f3f\",\n    \"email\": \"user@example.com\",\n    \"status\": \"ACTIVE\",\n    \"created\": \"2026-08-04T22:29:16.607905Z\",\n    \"updated\": \"2026-08-04T22:29:16.607905Z\",\n    \"balances\": [\n      {\n        \"currency\": \"USD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"EUR\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"AUD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"CAD\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"ARS\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"PLN\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"BTC\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"ETH\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"DOGE\",\n        \"amount\": \"0.00\"\n      },\n      {\n        \"currency\": \"USDT\",\n        \"amount\": \"0.00\"\n      }\n    ]\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "change_user_status",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"status\": \"ACTIVE\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/users/550e8400-e29b-41d4-a716-446655440000",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "users",
+            "550e8400-e29b-41d4-a716-446655440000"
+          ]
+        },
+        "description": "# Change User Status\n\nUpdates the status of an existing user identified by their UUID.\n\n## Path Parameters\n\n| Parameter | Type | Required | Description |\n| --- | --- | --- | --- |\n| `user_id` | string (UUID) | Yes | The unique identifier of the user whose status is being changed. |\n\n## Request Body\n\nContent-Type: `application/json`\n\n| Field | Type | Required | Description |\n| --- | --- | --- | --- |\n| `status` | string | Yes | The new status to assign to the user. Accepted values: `ACTIVE`, `BLOCKED`. |\n\n### Example\n\n``` json\n{\n  \"status\": \"BLOCKED\"\n}\n\n ```\n\n## Responses\n\n| Status Code | Description |\n| --- | --- |\n| **200 OK** | The user's status was successfully updated. Returns the updated user object. |\n| **400 Bad Request** | The user already has the requested status. |\n| **404 Not Found** | No user with the provided `user_id` exists. |\n\n### 400 Bad Request\n\nA `400 Bad Request` response is returned when the requested status is the same as the user's current status.\n\nExamples:\n\n- Attempting to set an `ACTIVE` user to `ACTIVE`.\n    \n- Attempting to set a `BLOCKED` user to `BLOCKED`.\n    \n\n## Response Body (200 OK)\n\n``` json\n{\n  \"id\": \"7d8b334e-c775-4003-b54d-b2ad56b54f3f\",\n  \"email\": \"user@example.com\",\n  \"status\": \"BLOCKED\",\n  \"created\": \"2026-08-04T22:29:16.607905Z\",\n  \"updated\": \"2026-08-04T23:22:21.165705Z\"\n}\n\n ```\n\n| Field | Type | Description |\n| --- | --- | --- |\n| `id` | string (UUID) | The unique identifier of the user. |\n| `email` | string | The email address of the user. |\n| `status` | string | The current status of the user. Possible values: `ACTIVE`, `BLOCKED`. |\n| `created` | string (ISO 8601) | Timestamp of when the user was created. |\n| `updated` | string (ISO 8601) | Timestamp of the last update to the user record. |"
+      },
+      "response": [
+        {
+          "name": "success",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"BLOCKED\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/7d8b334e-c775-4003-b54d-b2ad56b54f3f",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "7d8b334e-c775-4003-b54d-b2ad56b54f3f"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 23:22:20 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "171"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"7d8b334e-c775-4003-b54d-b2ad56b54f3f\",\n  \"email\": \"user@example.com\",\n  \"status\": \"BLOCKED\",\n  \"created\": \"2026-08-04T22:29:16.607905Z\",\n  \"updated\": \"2026-08-04T23:22:21.165705Z\"\n}"
+        },
+        {
+          "name": "user_already_blocked",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"BLOCKED\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/7d8b334e-c775-4003-b54d-b2ad56b54f3f",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "7d8b334e-c775-4003-b54d-b2ad56b54f3f"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 23:23:19 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "83"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"User with id=`7d8b334e-c775-4003-b54d-b2ad56b54f3f` is already blocked\"\n}"
+        },
+        {
+          "name": "user_already_active",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"ACTIVE\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/d150e2b0-91e5-4874-ad8d-91e70fc86a48",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "d150e2b0-91e5-4874-ad8d-91e70fc86a48"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 23:24:14 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "82"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"User with id=`d150e2b0-91e5-4874-ad8d-91e70fc86a48` is already active\"\n}"
+        },
+        {
+          "name": "user_does_not_exist",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"status\": \"ACTIVE\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/users/550e8400-e29b-41d4-a716-446655440000",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "550e8400-e29b-41d4-a716-446655440000"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Tue, 04 Aug 2026 23:25:13 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "79"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"User with id=`550e8400-e29b-41d4-a716-446655440000` does not exist\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "create_transaction",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"currency\": \"USD\",\r\n    \"amount\": 100,\r\n    \"operation_type\": \"REVERSAL\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/982df6c0-1154-4f4f-b977-ae7cd9e988ff/transactions",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+            "transactions"
+          ]
+        },
+        "description": "# Create a new transaction\n\nCreates a new financial transaction for a specific user account.\n\n## Request Body\n\n`Content-Type: application/json`\n\n| Field | Type | Required | Description |\n| --- | --- | --- | --- |\n| `currency` | string | Yes | ISO 4217 currency code (e.g. `USD`). |\n| `amount` | number | Yes | Transaction amount. Must be greater than zero. |\n| `operation_type` | string | Yes | Type of operation. Supported values: `DEPOSIT`, `WITHDRAW`. `REVERSAL` is not allowed when creating a new transaction. |\n\n## Responses\n\n| Status | Name | Description |\n| --- | --- | --- |\n| **201 Created** | `success_deposit` | Transaction was successfully created as a deposit and the amount was added to the user's balance. |\n| **201 Created** | `success_withdraw` | Transaction was successfully created as a withdrawal and the amount was deducted from the user's balance. |\n| **400 Bad Request** | `reversal_not_allowed` | The `REVERSAL` operation is not permitted when creating a new transaction. |\n| **400 Bad Request** | `negative_balance_after_operation` | The withdraw would result in a negative account balance. |\n| **400 Bad Request** | `blocked_user` | The user account is blocked and cannot perform transactions. |\n| **404 Not Found** | `user_not_found` | No user account was found for the given ID. |\n| **404 Not Found** | `balance_not_found` | No balance was found for the specified user and currency. |\n| **422 Unprocessable Entity** | `unknown_currency` | The provided currency code is not recognised. |\n| **422 Unprocessable Entity** | `transaction_amount_must_be_positive` | The transaction amount must be greater than zero. |\n\n## Successful Response\n\nThe response contains the newly created transaction.\n\n| Field | Type | Description |\n| --- | --- | --- |\n| `id` | string | Unique identifier of the transaction. |\n| `user_id` | string | Unique identifier of the user associated with the transaction. |\n| `currency` | string | ISO 4217 currency code (e.g. `USD`). |\n| `operation_type` | string | Type of transaction: `DEPOSIT`, `WITHDRAW`, or `REVERSAL`. |\n| `amount` | string | Transaction amount. |\n| `reversal_of_id` | string (UUID) | null | ID of the original transaction being reversed. `null` for `DEPOSIT` and `WITHDRAW` transactions; set to the original transaction ID for `REVERSAL` transactions. |\n| `status` | string | Current status of the transaction. |\n| `created` | string | Timestamp when the transaction was created, in ISO 8601 format. |\n| `updated` | string | Timestamp when the transaction was last updated, in ISO 8601 format. |\n\n## Example Request\n\n``` json\n{\n  \"currency\": \"USD\",\n  \"amount\": \"100.00\",\n  \"operation_type\": \"DEPOSIT\"\n}\n\n ```\n\n## Example Response\n\n``` json\n{\n  \"id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n  \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n  \"currency\": \"USD\",\n  \"operation_type\": \"WITHDRAW\",\n  \"amount\": \"50.00\",\n  \"reversal_of_id\": null,\n  \"status\": \"PROCESSED\",\n  \"created\": \"2026-11-14T11:51:44.533309Z\",\n  \"updated\": \"2026-11-14T11:51:44.533309Z\"\n}\n\n ```\n\n## Transaction Behavior\n\n- `DEPOSIT` adds the transaction amount to the user's balance.\n    \n- `WITHDRAW` subtracts the transaction amount from the user's balance.\n    \n- `WITHDRAW` is rejected if it would result in a negative balance.\n    \n- `REVERSAL` cannot be created directly. Reversals are created through the transaction rollback operation.\n    \n- A balance for the specified currency must exist before creating the transaction.\n    \n- Blocked users cannot create transactions."
+      },
+      "response": [
+        {
+          "name": "transaction_amount_must_be_positive",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"currency\": \"USD\",\r\n    \"amount\": -100,\r\n    \"operation_type\": \"DEPOSIT\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/d150e2b0-91e5-4874-ad8d-91e70fc86a48/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "d150e2b0-91e5-4874-ad8d-91e70fc86a48",
+                "transactions"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 15:39:40 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "48"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Transaction amount must be positive\"\n}"
+        },
+        {
+          "name": "unknown_currency",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"currency\": \"unknown\",\r\n    \"amount\": 100,\r\n    \"operation_type\": \"DEPOSIT\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/d150e2b0-91e5-4874-ad8d-91e70fc86a48/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "d150e2b0-91e5-4874-ad8d-91e70fc86a48",
+                "transactions"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 15:41:11 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "101"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Input should be 'USD', 'EUR', 'AUD', 'CAD', 'ARS', 'PLN', 'BTC', 'ETH', 'DOGE' or 'USDT'\"\n}"
+        },
+        {
+          "name": "user_not_found",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"currency\": \"USD\",\r\n    \"amount\": 100,\r\n    \"operation_type\": \"DEPOSIT\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/cee64210-5f8f-4a82-bd64-4c1b74287b7a/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cee64210-5f8f-4a82-bd64-4c1b74287b7a",
+                "transactions"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 15:43:29 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "79"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"User with id=`cee64210-5f8f-4a82-bd64-4c1b74287b7a` does not exist\"\n}"
+        },
+        {
+          "name": "blocked_user",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"currency\": \"USD\",\r\n    \"amount\": 100,\r\n    \"operation_type\": \"DEPOSIT\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/f4aab7e7-6d30-47d7-9226-76f599c6be10/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "f4aab7e7-6d30-47d7-9226-76f599c6be10",
+                "transactions"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 15:44:20 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "75"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"User with id=`f4aab7e7-6d30-47d7-9226-76f599c6be10` is blocked\"\n}"
+        },
+        {
+          "name": "negative_balance_after_operation",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"currency\": \"USD\",\r\n    \"amount\": 150,\r\n    \"operation_type\": \"WITHDRAW\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/d150e2b0-91e5-4874-ad8d-91e70fc86a48/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "d150e2b0-91e5-4874-ad8d-91e70fc86a48",
+                "transactions"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 15:46:33 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "38"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Negative balance: -100.00\"\n}"
+        },
+        {
+          "name": "success_deposit",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"currency\": \"USD\",\r\n    \"amount\": 100,\r\n    \"operation_type\": \"DEPOSIT\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/982df6c0-1154-4f4f-b977-ae7cd9e988ff/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+                "transactions"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Sat, 14 Nov 2026 11:50:18 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "279"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"4c72fa3a-ba59-4006-8408-0501f516722a\",\n  \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n  \"currency\": \"USD\",\n  \"operation_type\": \"DEPOSIT\",\n  \"amount\": \"100.00\",\n  \"reversal_of_id\": null,\n  \"status\": \"PROCESSED\",\n  \"created\": \"2026-11-14T11:50:19.041616Z\",\n  \"updated\": \"2026-11-14T11:50:19.041616Z\"\n}"
+        },
+        {
+          "name": "success_withdrow",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"currency\": \"USD\",\r\n    \"amount\": 50,\r\n    \"operation_type\": \"WITHDRAW\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/982df6c0-1154-4f4f-b977-ae7cd9e988ff/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+                "transactions"
+              ]
+            }
+          },
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Sat, 14 Nov 2026 11:51:43 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "279"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n  \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n  \"currency\": \"USD\",\n  \"operation_type\": \"WITHDRAW\",\n  \"amount\": \"50.00\",\n  \"reversal_of_id\": null,\n  \"status\": \"PROCESSED\",\n  \"created\": \"2026-11-14T11:51:44.533309Z\",\n  \"updated\": \"2026-11-14T11:51:44.533309Z\"\n}"
+        },
+        {
+          "name": "reversal_not_allowed",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"currency\": \"USD\",\r\n    \"amount\": 100,\r\n    \"operation_type\": \"REVERSAL\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/982df6c0-1154-4f4f-b977-ae7cd9e988ff/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+                "transactions"
+              ]
+            }
+          },
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Sat, 14 Nov 2026 11:54:02 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "115"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Input should be <TransactionTypeEnum.DEPOSIT: 'DEPOSIT'> or <TransactionTypeEnum.WITHDRAW: 'WITHDRAW'>\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "rollback_transaction",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/982df6c0-1154-4f4f-b977-ae7cd9e988ff/transactions/ccb48895-dd47-4f02-b884-bd1b9d517568",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+            "transactions",
+            "ccb48895-dd47-4f02-b884-bd1b9d517568"
+          ]
+        },
+        "description": "# Roll back transaction\n\nRolls back a financial transaction for a specific user account. The rollback creates a new `REVERSAL` transaction linked to the original transaction and reverses its effect on the user's balance.\n\n## Request Body\n\nNo request body is required.\n\n## Responses\n\n| Status | Name | Description |\n| --- | --- | --- |\n| **200 OK** | `success` | The transaction was successfully rolled back. A new reversal transaction is created with the same currency and amount as the original transaction. |\n| **400 Bad Request** | `reversal_not_allowed` | The specified transaction is already a reversal and cannot be rolled back. |\n| **400 Bad Request** | `transaction_already_reversed` | The specified transaction has already been rolled back and cannot be reversed again. |\n| **400 Bad Request** | `transaction_belongs_to_another_user` | The specified transaction does not belong to the user identified in the request. |\n| **400 Bad Request** | `blocked_user` | The user account is blocked and cannot perform transaction rollbacks. |\n| **400 Bad Request** | `negative_balance_after_rollback` | The rollback would result in a negative account balance. |\n| **404 Not Found** | `user_not_found` | No user account was found for the given ID. |\n| **404 Not Found** | `transaction_not_found` | No transaction was found for the given ID. |\n| **404 Not Found** | `balance_not_found` | No balance was found for the transaction's currency. |\n\n## Successful Response\n\n| Field | Type | Description |\n| --- | --- | --- |\n| `id` | string | Unique identifier of the reversal transaction. |\n| `user_id` | string | Unique identifier of the user associated with the transaction. |\n| `currency` | string | ISO 4217 currency code (e.g. `USD`). |\n| `operation_type` | string | Type of transaction. Always `REVERSAL` for a successful rollback. |\n| `amount` | string | Amount of the reversed transaction. |\n| `reversal_of_id` | string (UUID) | ID of the original transaction being reversed. Always set for a `REVERSAL` transaction. |\n| `status` | string | Current status of the reversal transaction. |\n| `created` | string | Timestamp when the reversal transaction was created, in ISO 8601 format. |\n| `updated` | string | Timestamp when the reversal transaction was last updated, in ISO 8601 format. |\n\n## Example Response\n\n``` json\n{\n  \"id\": \"2097bb30-2129-4294-b114-b08d05fc9335\",\n  \"user_id\": \"d150e2b0-91e5-4874-ad8d-91e70fc86a48\",\n  \"currency\": \"USD\",\n  \"operation_type\": \"REVERSAL\",\n  \"amount\": \"50.00\",\n  \"reversal_of_id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n  \"status\": \"PROCESSED\",\n  \"created\": \"2026-08-05T16:03:21.384931Z\",\n  \"updated\": \"2026-08-05T16:03:21.384931Z\"\n}\n\n ```\n\n## Rollback Behavior\n\n- For a `DEPOSIT`, the transaction amount is subtracted from the user's balance.\n    \n- For a `WITHDRAW`, the transaction amount is added back to the user's balance.\n    \n- A new transaction with `operation_type = REVERSAL` is created.\n    \n- The reversal transaction references the original transaction through `reversal_of_id`.\n    \n- The original transaction remains unchanged.\n    \n- A transaction can only be rolled back once."
+      },
+      "response": [
+        {
+          "name": "user_does_not_exist",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cee64210-5f8f-4a82-bd64-4c1b74287b7a/transactions/96e4013b-7eeb-4cd9-ab62-9980ebc36f20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cee64210-5f8f-4a82-bd64-4c1b74287b7a",
+                "transactions",
+                "96e4013b-7eeb-4cd9-ab62-9980ebc36f20"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 16:05:51 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "79"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"User with id=`cee64210-5f8f-4a82-bd64-4c1b74287b7a` does not exist\"\n}"
+        },
+        {
+          "name": "transaction_not_found",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/d150e2b0-91e5-4874-ad8d-91e70fc86a48/transactions/8e73738d-556c-4223-b12d-a5d84aa5e2d3",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "d150e2b0-91e5-4874-ad8d-91e70fc86a48",
+                "transactions",
+                "8e73738d-556c-4223-b12d-a5d84aa5e2d3"
+              ]
+            }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 16:06:44 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "81"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Transaction with id=`8e73738d-556c-4223-b12d-a5d84aa5e2d3` not found\"\n}"
+        },
+        {
+          "name": "transaction_already_roll_backed",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/d150e2b0-91e5-4874-ad8d-91e70fc86a48/transactions/96e4013b-7eeb-4cd9-ab62-9980ebc36f20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "d150e2b0-91e5-4874-ad8d-91e70fc86a48",
+                "transactions",
+                "96e4013b-7eeb-4cd9-ab62-9980ebc36f20"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 16:07:25 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "93"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Transaction with id=`96e4013b-7eeb-4cd9-ab62-9980ebc36f20` is already rollbacked\"\n}"
+        },
+        {
+          "name": "reversal_transaction_not_roll_backed",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/d150e2b0-91e5-4874-ad8d-91e70fc86a48/transactions/662462dc-f4a4-4411-8205-3c01b1070fc0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "d150e2b0-91e5-4874-ad8d-91e70fc86a48",
+                "transactions",
+                "662462dc-f4a4-4411-8205-3c01b1070fc0"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 16:09:50 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "39"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Incorrect transaction type\"\n}"
+        },
+        {
+          "name": "fail_rollback_transaction_of_another_user",
+          "originalRequest": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/d150e2b0-91e5-4874-ad8d-91e70fc86a48/transactions/72817f0f-66d0-4ca1-a264-fed46d91efcd",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "d150e2b0-91e5-4874-ad8d-91e70fc86a48",
+                "transactions",
+                "72817f0f-66d0-4ca1-a264-fed46d91efcd"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 16:12:12 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "142"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Transaction with id=`72817f0f-66d0-4ca1-a264-fed46d91efcd` does not belong to user with id=`d150e2b0-91e5-4874-ad8d-91e70fc86a48`\"\n}"
+        },
+        {
+          "name": "user_is_blocked",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/5fa1eb19-492e-4e3f-a7c9-6642a07a632b/transactions/72817f0f-66d0-4ca1-a264-fed46d91efcd",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "5fa1eb19-492e-4e3f-a7c9-6642a07a632b",
+                "transactions",
+                "72817f0f-66d0-4ca1-a264-fed46d91efcd"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 16:16:08 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "75"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"User with id=`5fa1eb19-492e-4e3f-a7c9-6642a07a632b` is blocked\"\n}"
+        },
+        {
+          "name": "negative_balance_after_rollback",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/5fa1eb19-492e-4e3f-a7c9-6642a07a632b/transactions/72817f0f-66d0-4ca1-a264-fed46d91efcd",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "5fa1eb19-492e-4e3f-a7c9-6642a07a632b",
+                "transactions",
+                "72817f0f-66d0-4ca1-a264-fed46d91efcd"
+              ]
+            }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 16:17:34 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "37"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"detail\": \"Negative balance: -50.00\"\n}"
+        },
+        {
+          "name": "rollback_withdraw_success",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/982df6c0-1154-4f4f-b977-ae7cd9e988ff/transactions/762432bc-c541-4706-8ed9-f7d0fa694a50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+                "transactions",
+                "762432bc-c541-4706-8ed9-f7d0fa694a50"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Sat, 14 Nov 2026 12:08:51 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "313"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"a4b598d9-65ee-4491-ac21-87ac2eab8d8a\",\n  \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n  \"currency\": \"USD\",\n  \"operation_type\": \"REVERSAL\",\n  \"amount\": \"50.00\",\n  \"reversal_of_id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n  \"status\": \"PROCESSED\",\n  \"created\": \"2026-11-14T12:08:52.045910Z\",\n  \"updated\": \"2026-11-14T12:08:52.045910Z\"\n}"
+        },
+        {
+          "name": "rollback_deposit_success",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/982df6c0-1154-4f4f-b977-ae7cd9e988ff/transactions/4c72fa3a-ba59-4006-8408-0501f516722a",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+                "transactions",
+                "4c72fa3a-ba59-4006-8408-0501f516722a"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Sat, 14 Nov 2026 12:13:02 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "314"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"id\": \"efb5d862-1c9f-4851-8ff3-2400717aa828\",\n  \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n  \"currency\": \"USD\",\n  \"operation_type\": \"REVERSAL\",\n  \"amount\": \"100.00\",\n  \"reversal_of_id\": \"4c72fa3a-ba59-4006-8408-0501f516722a\",\n  \"status\": \"PROCESSED\",\n  \"created\": \"2026-11-14T12:13:03.286756Z\",\n  \"updated\": \"2026-11-14T12:13:03.286756Z\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "get_transactions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/transactions?user_id=982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "transactions"
+          ],
+          "query": [
+            {
+              "key": "user_id",
+              "value": "982df6c0-1154-4f4f-b977-ae7cd9e988ff"
+            }
+          ]
+        },
+        "description": "# Get Transactions\n\nRetrieves financial transactions, optionally filtered by user.\n\n## Request\n\n**Endpoint:** `GET /transactions`\n\n### Query Parameters\n\n| Parameter | Type | Required | Description |\n| --- | --- | --- | --- |\n| `user_id` | string (UUID) | No | Filters transactions belonging to the specified user. |\n\nIf `user_id` is not provided, transactions for all users are returned.\n\nTransactions are returned ordered by creation time in **descending** order, with the newest transaction first.\n\n## Responses\n\n| Status | Description |\n| --- | --- |\n| **200 OK** | Transactions were successfully retrieved. |\n| **422 Unprocessable Entity** | The provided `user_id` is not a valid UUID. |\n\n### Response Body — 200 OK\n\n``` json\n[\n  {\n    \"id\": \"2097bb30-2129-4294-b114-b08d05fc9335\",\n    \"user_id\": \"d150e2b0-91e5-4874-ad8d-91e70fc86a48\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-08-05T16:03:21.384931Z\",\n    \"updated\": \"2026-08-05T16:03:21.384931Z\"\n  }\n]\n\n ```\n\n### Transaction Response Fields\n\n| Field | Type | Description |\n| --- | --- | --- |\n| `id` | string (UUID) | Unique identifier of the transaction. |\n| `user_id` | string (UUID) | ID of the user associated with the transaction. |\n| `currency` | string | Transaction currency. |\n| `operation_type` | string | Transaction operation type: `DEPOSIT`, `WITHDRAW`, or `REVERSAL`. |\n| `amount` | string (decimal) | Transaction amount. |\n| `reversal_of_id` | string (UUID) | null | ID of the original transaction being reversed. `null` for `DEPOSIT` and `WITHDRAW`; set for `REVERSAL`. |\n| `status` | string | Current transaction status. |\n| `created` | string (ISO 8601) | Timestamp when the transaction was created. |\n| `updated` | string (ISO 8601) | Timestamp when the transaction was last updated. |"
+      },
+      "response": [
+        {
+          "name": "get_all_transactions",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transactions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transactions"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Sat, 14 Nov 2026 12:30:12 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "5247"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n  {\n    \"id\": \"7757a261-86a6-4b66-a6ce-9a7856611ae9\",\n    \"user_id\": \"2603dd65-30b7-425d-9c53-be606880f644\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:17:08.500066Z\",\n    \"updated\": \"2026-11-14T12:17:08.500066Z\"\n  },\n  {\n    \"id\": \"bbfe45ad-1c22-4e3b-b7e6-ad214e350759\",\n    \"user_id\": \"2603dd65-30b7-425d-9c53-be606880f644\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:17:00.490531Z\",\n    \"updated\": \"2026-11-14T12:17:00.490531Z\"\n  },\n  {\n    \"id\": \"6bebbe3f-2e8c-427a-b527-475e5f6d3b43\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": \"ccb48895-dd47-4f02-b884-bd1b9d517568\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:16:02.816167Z\",\n    \"updated\": \"2026-11-14T12:16:02.816167Z\"\n  },\n  {\n    \"id\": \"103a6216-92e4-432e-8eaf-3cdc052ec4f1\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:15:37.338092Z\",\n    \"updated\": \"2026-11-14T12:15:37.338092Z\"\n  },\n  {\n    \"id\": \"ccb48895-dd47-4f02-b884-bd1b9d517568\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:15:27.434362Z\",\n    \"updated\": \"2026-11-14T12:15:27.434362Z\"\n  },\n  {\n    \"id\": \"efb5d862-1c9f-4851-8ff3-2400717aa828\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": \"4c72fa3a-ba59-4006-8408-0501f516722a\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:13:03.286756Z\",\n    \"updated\": \"2026-11-14T12:13:03.286756Z\"\n  },\n  {\n    \"id\": \"a4b598d9-65ee-4491-ac21-87ac2eab8d8a\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:08:52.045910Z\",\n    \"updated\": \"2026-11-14T12:08:52.045910Z\"\n  },\n  {\n    \"id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T11:51:44.533309Z\",\n    \"updated\": \"2026-11-14T11:51:44.533309Z\"\n  },\n  {\n    \"id\": \"4c72fa3a-ba59-4006-8408-0501f516722a\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T11:50:19.041616Z\",\n    \"updated\": \"2026-11-14T11:50:19.041616Z\"\n  },\n  {\n    \"id\": \"8dc3a241-8018-4420-b6fe-530c9b5d2d23\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T11:48:59.115138Z\",\n    \"updated\": \"2026-11-14T11:48:59.115138Z\"\n  },\n  {\n    \"id\": \"eebd7402-5b3d-4972-b8db-5b689979c34d\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": \"a3698fb3-8b0f-491d-8a2c-bb0aa44266a4\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-12T20:47:05.671032Z\",\n    \"updated\": \"2026-11-12T20:47:05.671032Z\"\n  },\n  {\n    \"id\": \"a3698fb3-8b0f-491d-8a2c-bb0aa44266a4\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-12T20:46:31.354993Z\",\n    \"updated\": \"2026-11-12T20:46:31.354993Z\"\n  },\n  {\n    \"id\": \"a6e0e38f-f0dc-40fa-89c5-d411454bc427\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"10.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T16:35:25.731351Z\",\n    \"updated\": \"2026-09-02T16:35:25.731351Z\"\n  },\n  {\n    \"id\": \"090fae27-0a26-4f89-b6bd-5cf64123bf50\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"10.00\",\n    \"reversal_of_id\": \"a6e0e38f-f0dc-40fa-89c5-d411454bc427\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T16:35:25.731351Z\",\n    \"updated\": \"2026-09-02T16:35:25.731351Z\"\n  },\n  {\n    \"id\": \"5f1b2de1-503c-4cd9-9643-49199b211dac\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"20.00\",\n    \"reversal_of_id\": \"a1641ea7-ab46-4ee3-84b2-f38088b7eac4\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T14:45:28.229639Z\",\n    \"updated\": \"2026-09-02T14:45:46.803461Z\"\n  },\n  {\n    \"id\": \"a1641ea7-ab46-4ee3-84b2-f38088b7eac4\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"20.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T14:45:28.229639Z\",\n    \"updated\": \"2026-09-02T14:45:46.803461Z\"\n  },\n  {\n    \"id\": \"9bbb17af-e165-41e4-943e-26d115d84246\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T14:45:23.300016Z\",\n    \"updated\": \"2026-09-02T14:45:23.300016Z\"\n  },\n  {\n    \"id\": \"17881990-c16c-4536-8d6f-6b4d95dfe0b3\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T14:45:14.486717Z\",\n    \"updated\": \"2026-09-02T14:45:14.486717Z\"\n  }\n]"
+        },
+        {
+          "name": "get_transactions_by_user",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transactions?user_id=982df6c0-1154-4f4f-b977-ae7cd9e988ff",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "transactions"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "982df6c0-1154-4f4f-b977-ae7cd9e988ff"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Sat, 14 Nov 2026 12:31:11 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "4687"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "[\n  {\n    \"id\": \"6bebbe3f-2e8c-427a-b527-475e5f6d3b43\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": \"ccb48895-dd47-4f02-b884-bd1b9d517568\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:16:02.816167Z\",\n    \"updated\": \"2026-11-14T12:16:02.816167Z\"\n  },\n  {\n    \"id\": \"103a6216-92e4-432e-8eaf-3cdc052ec4f1\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:15:37.338092Z\",\n    \"updated\": \"2026-11-14T12:15:37.338092Z\"\n  },\n  {\n    \"id\": \"ccb48895-dd47-4f02-b884-bd1b9d517568\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:15:27.434362Z\",\n    \"updated\": \"2026-11-14T12:15:27.434362Z\"\n  },\n  {\n    \"id\": \"efb5d862-1c9f-4851-8ff3-2400717aa828\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": \"4c72fa3a-ba59-4006-8408-0501f516722a\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:13:03.286756Z\",\n    \"updated\": \"2026-11-14T12:13:03.286756Z\"\n  },\n  {\n    \"id\": \"a4b598d9-65ee-4491-ac21-87ac2eab8d8a\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T12:08:52.045910Z\",\n    \"updated\": \"2026-11-14T12:08:52.045910Z\"\n  },\n  {\n    \"id\": \"762432bc-c541-4706-8ed9-f7d0fa694a50\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T11:51:44.533309Z\",\n    \"updated\": \"2026-11-14T11:51:44.533309Z\"\n  },\n  {\n    \"id\": \"4c72fa3a-ba59-4006-8408-0501f516722a\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T11:50:19.041616Z\",\n    \"updated\": \"2026-11-14T11:50:19.041616Z\"\n  },\n  {\n    \"id\": \"8dc3a241-8018-4420-b6fe-530c9b5d2d23\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-14T11:48:59.115138Z\",\n    \"updated\": \"2026-11-14T11:48:59.115138Z\"\n  },\n  {\n    \"id\": \"eebd7402-5b3d-4972-b8db-5b689979c34d\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": \"a3698fb3-8b0f-491d-8a2c-bb0aa44266a4\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-12T20:47:05.671032Z\",\n    \"updated\": \"2026-11-12T20:47:05.671032Z\"\n  },\n  {\n    \"id\": \"a3698fb3-8b0f-491d-8a2c-bb0aa44266a4\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-11-12T20:46:31.354993Z\",\n    \"updated\": \"2026-11-12T20:46:31.354993Z\"\n  },\n  {\n    \"id\": \"a6e0e38f-f0dc-40fa-89c5-d411454bc427\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"10.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T16:35:25.731351Z\",\n    \"updated\": \"2026-09-02T16:35:25.731351Z\"\n  },\n  {\n    \"id\": \"090fae27-0a26-4f89-b6bd-5cf64123bf50\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"10.00\",\n    \"reversal_of_id\": \"a6e0e38f-f0dc-40fa-89c5-d411454bc427\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T16:35:25.731351Z\",\n    \"updated\": \"2026-09-02T16:35:25.731351Z\"\n  },\n  {\n    \"id\": \"5f1b2de1-503c-4cd9-9643-49199b211dac\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"REVERSAL\",\n    \"amount\": \"20.00\",\n    \"reversal_of_id\": \"a1641ea7-ab46-4ee3-84b2-f38088b7eac4\",\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T14:45:28.229639Z\",\n    \"updated\": \"2026-09-02T14:45:46.803461Z\"\n  },\n  {\n    \"id\": \"a1641ea7-ab46-4ee3-84b2-f38088b7eac4\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"20.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T14:45:28.229639Z\",\n    \"updated\": \"2026-09-02T14:45:46.803461Z\"\n  },\n  {\n    \"id\": \"9bbb17af-e165-41e4-943e-26d115d84246\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"WITHDRAW\",\n    \"amount\": \"50.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T14:45:23.300016Z\",\n    \"updated\": \"2026-09-02T14:45:23.300016Z\"\n  },\n  {\n    \"id\": \"17881990-c16c-4536-8d6f-6b4d95dfe0b3\",\n    \"user_id\": \"982df6c0-1154-4f4f-b977-ae7cd9e988ff\",\n    \"currency\": \"USD\",\n    \"operation_type\": \"DEPOSIT\",\n    \"amount\": \"100.00\",\n    \"reversal_of_id\": null,\n    \"status\": \"PROCESSED\",\n    \"created\": \"2026-09-02T14:45:14.486717Z\",\n    \"updated\": \"2026-09-02T14:45:14.486717Z\"\n  }\n]"
+        }
+      ]
+    },
+    {
+      "name": "get_report",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "/reports/analysis",
+          "path": [
+            "reports",
+            "analysis"
+          ]
+        },
+        "description": "# Get Analytics Report\n\nReturns an aggregated analytics report for the last 52 completed weeks.\n\nThe report is generated asynchronously and cached in Redis. If a cached report is available, it is returned immediately. If no cached report exists, report generation is started in the background and the endpoint returns a generation status.\n\n### Request\n\nNo request body or query parameters are required.\n\n### Responses\n\n| Status | Name | Description |\n| --- | --- | --- |\n| `200 OK` | `report_ready` | A previously generated report was found in the cache and is returned. |\n| `200 OK` | `report_generating` | No cached report is available. Report generation has been started in the background. |\n\n### Response — Report Available\n\nWhen a cached report exists, the endpoint returns an object containing the generation timestamp and the aggregated weekly data.\n\n``` json\n{\n  \"generated_at\": \"2026-08-05T16:03:21.384931+00:00\",\n  \"data\": [\n    {\n      \"start_date\": \"2026-07-27\",\n      \"end_date\": \"2026-08-02\",\n      \"registered_users_count\": 10,\n      \"deposit_users_count\": 7,\n      \"not_roll_backed_deposit_amount\": 1500,\n      \"not_roll_backed_withdraw_amount\": 500,\n      \"transactions_count\": 25,\n      \"not_roll_backed_transactions_count\": 20\n    },\n    ...\n  ]\n}\n\n ```\n\n### Response Fields\n\n#### Report Object\n\n| Field | Type | Description |\n| --- | --- | --- |\n| `generated_at` | string (ISO 8601) | Timestamp indicating when the report was generated. |\n| `data` | array | Aggregated statistics for the last 52 completed weeks. |\n\n#### Weekly Report Object\n\n| Field | Type | Description |\n| --- | --- | --- |\n| `start_date` | string (ISO 8601 date) | Start date of the reported week. |\n| `end_date` | string (ISO 8601 date) | End date of the reported week. |\n| `registered_users_count` | integer | Number of users registered during the week. |\n| `deposit_users_count` | integer | Number of users who made deposits during the week. |\n| `not_roll_backed_deposit_amount` | integer | Total deposit amount not rolled back during the week. |\n| `not_roll_backed_withdraw_amount` | integer | Total withdrawal amount not rolled back during the week. |\n| `transactions_count` | integer | Total number of transactions during the week. |\n| `not_roll_backed_transactions_count` | integer | Number of transactions that were not rolled back during the week. |\n\n### Response — Report Generation Started\n\nIf there is no cached report, the endpoint starts asynchronous report generation and immediately returns:\n\n``` json\n{\n  \"status\": \"generating\"\n}\n\n ```\n\nThe report is generated by a background worker and saved to the cache when generation is complete.\n\n### Report Generation\n\nThe report covers **52 completed weeks**.\n\nThe current incomplete week is excluded from the report. The reporting period starts with the completed week immediately preceding the current week and goes back 52 weeks.\n\nEach weekly entry contains aggregated user and transaction statistics.\n\n### Caching and Concurrent Requests\n\nGenerated reports are stored in Redis.\n\nIf a report is already cached, no new generation task is started.\n\nIf the cache is empty, the service acquires a Redis lock before starting report generation. The lock prevents multiple concurrent requests from starting duplicate report generation tasks.\n\nThe generation lock expires after 600 seconds.\n\nOnce report generation is completed, the lock is removed and the generated report is stored in the cache."
+      },
+      "response": [
+        {
+          "name": "report_generating",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reports/analysis",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reports",
+                "analysis"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 20:12:15 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "23"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"status\": \"generating\"\n}"
+        },
+        {
+          "name": "background_task_generated_report",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reports/analysis",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reports",
+                "analysis"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "date",
+              "value": "Wed, 05 Aug 2026 20:13:08 GMT"
+            },
+            {
+              "key": "server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "content-length",
+              "value": "12332"
+            },
+            {
+              "key": "content-type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"generated_at\": \"2026-08-05T20:12:58.561177+00:00\",\n  \"data\": [\n    {\n      \"start_date\": \"2026-07-27\",\n      \"end_date\": \"2026-08-02\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-07-20\",\n      \"end_date\": \"2026-07-26\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-07-13\",\n      \"end_date\": \"2026-07-19\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-07-06\",\n      \"end_date\": \"2026-07-12\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-06-29\",\n      \"end_date\": \"2026-07-05\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-06-22\",\n      \"end_date\": \"2026-06-28\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-06-15\",\n      \"end_date\": \"2026-06-21\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-06-08\",\n      \"end_date\": \"2026-06-14\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-06-01\",\n      \"end_date\": \"2026-06-07\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-05-25\",\n      \"end_date\": \"2026-05-31\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-05-18\",\n      \"end_date\": \"2026-05-24\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-05-11\",\n      \"end_date\": \"2026-05-17\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-05-04\",\n      \"end_date\": \"2026-05-10\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-04-27\",\n      \"end_date\": \"2026-05-03\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-04-20\",\n      \"end_date\": \"2026-04-26\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-04-13\",\n      \"end_date\": \"2026-04-19\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-04-06\",\n      \"end_date\": \"2026-04-12\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-03-30\",\n      \"end_date\": \"2026-04-05\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-03-23\",\n      \"end_date\": \"2026-03-29\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-03-16\",\n      \"end_date\": \"2026-03-22\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-03-09\",\n      \"end_date\": \"2026-03-15\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-03-02\",\n      \"end_date\": \"2026-03-08\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-02-23\",\n      \"end_date\": \"2026-03-01\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-02-16\",\n      \"end_date\": \"2026-02-22\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-02-09\",\n      \"end_date\": \"2026-02-15\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-02-02\",\n      \"end_date\": \"2026-02-08\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-01-26\",\n      \"end_date\": \"2026-02-01\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-01-19\",\n      \"end_date\": \"2026-01-25\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-01-12\",\n      \"end_date\": \"2026-01-18\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2026-01-05\",\n      \"end_date\": \"2026-01-11\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-12-29\",\n      \"end_date\": \"2026-01-04\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-12-22\",\n      \"end_date\": \"2025-12-28\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-12-15\",\n      \"end_date\": \"2025-12-21\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-12-08\",\n      \"end_date\": \"2025-12-14\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-12-01\",\n      \"end_date\": \"2025-12-07\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-11-24\",\n      \"end_date\": \"2025-11-30\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-11-17\",\n      \"end_date\": \"2025-11-23\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-11-10\",\n      \"end_date\": \"2025-11-16\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-11-03\",\n      \"end_date\": \"2025-11-09\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-10-27\",\n      \"end_date\": \"2025-11-02\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-10-20\",\n      \"end_date\": \"2025-10-26\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-10-13\",\n      \"end_date\": \"2025-10-19\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-10-06\",\n      \"end_date\": \"2025-10-12\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-09-29\",\n      \"end_date\": \"2025-10-05\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-09-22\",\n      \"end_date\": \"2025-09-28\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-09-15\",\n      \"end_date\": \"2025-09-21\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-09-08\",\n      \"end_date\": \"2025-09-14\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-09-01\",\n      \"end_date\": \"2025-09-07\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-08-25\",\n      \"end_date\": \"2025-08-31\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-08-18\",\n      \"end_date\": \"2025-08-24\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-08-11\",\n      \"end_date\": \"2025-08-17\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    },\n    {\n      \"start_date\": \"2025-08-04\",\n      \"end_date\": \"2025-08-10\",\n      \"registered_users_count\": 0,\n      \"deposit_users_count\": 0,\n      \"not_roll_backed_deposit_amount\": 0,\n      \"not_roll_backed_withdraw_amount\": 0,\n      \"transactions_count\": 0,\n      \"not_roll_backed_transactions_count\": 0\n    }\n  ]\n}"
+        }
+      ]
+    }
+  ]
+}
