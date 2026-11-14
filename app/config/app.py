@@ -3,6 +3,7 @@ from app.config.broker import configure_broker
 configure_broker()
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -53,7 +54,12 @@ async def lifespan(app: FastAPI):
                 await app.state.redis.aclose()
 
 
-app = FastAPI(title="This application works with users and their transactions", version="0.1.0", lifespan=lifespan)
+description_path = Path(__file__).parent.parent / "docs" / "description.md"
+description = description_path.read_text(encoding="utf-8")
+
+app = FastAPI(
+    title="Financial User & Transaction Management Service", description=description, version="0.1.0", lifespan=lifespan
+)
 
 setup_middlewares(app)
 setup_exception_handlers(app)
@@ -61,6 +67,10 @@ setup_exception_handlers(app)
 app.include_router(router)
 
 
-@app.get("/")
+@app.get(
+    "/",
+    description="Health-check endpoint. Returns a service name to confirm the application is running.",
+    summary="Home endpoint",
+)
 async def home():
     return {"message": "Transactions Service"}

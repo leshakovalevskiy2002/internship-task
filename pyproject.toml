@@ -2,6 +2,7 @@
 name = "task"
 version = "0.1.0"
 description = ""
+package-mode = false
 authors = ["Author <author@gmail.com>"]
 readme = "README.md"
 

@@ -18,12 +18,27 @@ from app.schemas.users import (
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=UserResponse)
+@router.post(
+    "",
+    description="Creates a user account with default balances for all supported currencies.",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new user",
+)
 async def registration(user_data: UserRegistrationRequest, user_service: UserServiceDep):
     return await user_service.create_user_and_balances(user_data.email)
 
 
-@router.get("", response_model=list[UserWithBalancesResponse], status_code=status.HTTP_200_OK)
+@router.get(
+    "",
+    description="""
+        Retrieves a list of users with their balances across all supported currencies.
+        Filters (can be combined): `user_id`, `email`, `user_status` (ACTIVE/BLOCKED).
+    """,
+    response_model=list[UserWithBalancesResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get users with balances",
+)
 async def get_users_with_balances(
     user_repo: Annotated[UserRepository, Depends(get_user_repo)],
     user_id: Annotated[UUID | None, Query(description="Filter by user_id")] = None,
@@ -47,6 +62,11 @@ async def get_users_with_balances(
     ]
 
 
-@router.patch("/{user_id}", response_model=UserResponse)
+@router.patch(
+    "/{user_id}",
+    description="Updates the status of an existing user identified by their UUID",
+    response_model=UserResponse,
+    summary="Change user status",
+)
 async def change_user_status(user_service: UserServiceDep, user_id: UUID, user: UpdateUserStatusRequest):
     return await user_service.change_user_status(user_id=user_id, new_status=user.status)
