@@ -9,7 +9,7 @@ from app.schemas.balances import UserBalanceResponse
 
 
 class UserRegistrationRequest(BaseModel):
-    email: Annotated[EmailStr, Field(max_length=100)]
+    email: Annotated[EmailStr, Field(max_length=100, description="Must be a valid email address")]
 
     @field_validator("email", mode="before")
     @classmethod
