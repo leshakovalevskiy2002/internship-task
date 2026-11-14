@@ -42,8 +42,8 @@ jobs:
       postgres:
         image: postgres:17
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: transactions_test
+          POSTGRES_PASSWORD: transactions_test
           POSTGRES_DB: transactions_service_db_test
         ports:
           - 5432:5432
