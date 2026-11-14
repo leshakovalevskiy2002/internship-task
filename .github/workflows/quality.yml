@@ -36,6 +36,9 @@ jobs:
       - name: Verify Docker
         run: docker info
 
+      - name: Create .env.test for tests
+        run: cp .env.test.example .env.test
+
       - name: Run unit tests
         run: poetry run pytest -m "not integration"
 
