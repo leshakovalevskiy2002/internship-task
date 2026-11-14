@@ -10,6 +10,34 @@ jobs:
   lint:
     runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Run isort
+        run: poetry run isort --check-only --diff app tests
+
+      - name: Run black
+        run: poetry run black --check --diff app tests
+
+      - name: Run mypy
+        run: poetry run mypy app
+
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     services:
       postgres:
         image: postgres:17
@@ -39,15 +67,6 @@ jobs:
 
       - name: Install dependencies
         run: poetry install --no-interaction --no-root
-
-      - name: Run isort
-        run: poetry run isort --check-only --diff app tests
-
-      - name: Run black
-        run: poetry run black --check --diff app tests
-
-      - name: Run mypy
-        run: poetry run mypy app
 
       - name: Verify Docker
         run: docker info
