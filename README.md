@@ -92,11 +92,11 @@ the Redis cache.
 
 ## Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) — for the containerized setup
-- [Python](https://www.python.org/downloads/) — for the local setup without Docker
-- [Poetry](https://python-poetry.org/docs/#installation) — for dependency management in the local setup
-- **PostgreSQL 16+** — for the local setup without Docker (see [Running Locally](#running-locally))
-- **Redis 7+** and **RabbitMQ 3+** — for the local setup without Docker (or run them in Docker, see [Running Locally](#running-locally))
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) - for the containerized setup
+- [Python](https://www.python.org/downloads/) - for the local setup without Docker
+- [Poetry](https://python-poetry.org/docs/#installation) - for dependency management in the local setup
+- **PostgreSQL 16+** - for the local setup without Docker (see [Running Locally](#running-locally))
+- **Redis 7+** and **RabbitMQ 3+** - for the local setup without Docker (or run them in Docker, see [Running Locally](#running-locally))
 
 ## Getting Started
 
@@ -382,11 +382,12 @@ Domain rules (users, transactions, analytics) are described in
 ```
 internship-task/
 ├── .github/
-│   └── workflows/      # CI pipelines
+│   └── workflows/        # CI pipelines
+├── alembic/              # migrations
 ├── app/
 │   ├── api/              # routers, handlers, response docs
-│   ├── core/             # constants, enums
 │   ├── config/           # settings
+│   ├── core/             # constants, enums
 │   ├── docs/             # in-app docs (OpenAPI descriptions)
 │   ├── models/           # SQLAlchemy models
 │   ├── queries/          # SQLAlchemy queries
@@ -399,23 +400,23 @@ internship-task/
 │   ├── main.py           # FastAPI entry point
 │   ├── uow.py            # unit of work
 │   └── worker.py         # Dramatiq worker entry point
-├── alembic/              # migrations
 ├── docs/                 # project documentation (business logic, Postman)
 │   └── postman/          # Postman collection and environment
+├── nginx/                # Nginx config
 ├── tests/
 ├── .dockerignore
+├── .env.dev.example
+├── .env.example
+├── .env.prod.example
+├── .env.test.example
 ├── .gitignore
 ├── alembic.ini
-├── .env.dev.example
-├── .env.prod.example
-├── .env.example
-├── .env.test.example
-├── docker-compose.yml
 ├── docker-compose.prod.yml
+├── docker-compose.yml
 ├── Dockerfile
 ├── Dockerfile.prod
-├── pytest.ini
 ├── poetry.lock
 ├── pyproject.toml
+├── pytest.ini
 └── README.md
 ```
